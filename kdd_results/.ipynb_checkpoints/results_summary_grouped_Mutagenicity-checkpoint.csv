@@ -1,0 +1,7 @@
+Architecture,Type,Train_Mean,Train_Std,Validation_Mean,Validation_Std,Test_Mean,Test_Std
+GATConv,MGSSL,0.0,0.0,0.0,0.0,0.0,0.0
+GATConv,RBRICS,0.0,0.0,0.0,0.0,0.0,0.0
+GCNConv,MGSSL,0.0,0.0,0.0,0.0,0.0,0.0
+GCNConv,RBRICS,0.0,0.0,0.0,0.0,0.0,0.0
+GINConv,MGSSL,0.0,0.0,0.0,0.0,0.0,0.0
+GINConv,RBRICS,0.0,0.0,0.0,0.0,0.0,0.0

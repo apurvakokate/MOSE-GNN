@@ -1,0 +1,643 @@
+,Unnamed: 0,iupac,smiles,expt,calc,group
+0,519,formaldehyde,C=O,-2.75,-3.155,training
+1,470,2-chlorobutane,CC[C@H](C)Cl,0.0,0.927,valid
+2,20,2-methoxypropane,CC(C)OC,-2.01,-0.657,valid
+3,110,"1,1-difluoroethane",CC(F)F,-0.11,0.226,training
+4,541,"1,1,1,2-tetramethoxyethane",COCC(OC)(OC)OC,-5.73,-5.436,training
+5,420,methanol,CO,-5.1,-3.491,training
+6,450,1-bromo-pentane,CCCCCBr,-0.1,0.824,training
+7,221,3-methylheptane,CCCC[C@@H](C)CC,2.97,3.03,training
+8,272,benzyl bromide,c1ccc(cc1)CBr,-2.38,-1.853,training
+9,183,naphthalene,c1ccc2ccccc2c1,-2.4,-3.213,valid
+10,296,2-methoxyaniline,COc1ccccc1N,-6.12,-6.771,training
+11,343,m-xylene,Cc1cccc(c1)C,-0.83,-0.697,training
+12,278,tetrafluoromethane,C(F)(F)(F)F,3.12,2.489,valid
+13,265,hept-2-ene,CCCC/C=C/C,1.68,2.78,training
+14,72,ethylene,C=C,1.28,2.328,test
+15,413,nitralin,CCCN(CCC)c1c(cc(cc1[N+](=O)[O-])S(=O)(=O)C)[N+](=O)[O-],-7.98,-11.246,training
+16,119,4-bromophenol,c1cc(ccc1O)Br,-5.85,-5.833,training
+17,270,"1,1,1-trimethoxyethane",CC(OC)(OC)OC,-4.42,-3.7,training
+18,631,o-xylene,Cc1ccccc1C,-0.9,-0.851,training
+19,267,1-chloropropane,CCCCl,-0.33,0.973,training
+20,376,butan-1-amine,CCCCN,-4.24,-2.961,training
+21,114,methyl 2-cyanoacetate,COC(=O)CC#N,-6.72,-6.36,training
+22,251,cyclopentane,C1CCCC1,1.2,1.648,training
+23,23,p-xylene,Cc1ccc(cc1)C,-0.8,-0.658,training
+24,602,3-nitroaniline,c1cc(cc(c1)[N+](=O)[O-])N,-8.84,-8.204,training
+25,241,pentan-2-one,CCCC(=O)C,-3.52,-3.166,training
+26,75,ethyl benzoate,CCOC(=O)c1ccccc1,-3.64,-4.597,valid
+27,339,propan-1-ol,CCCO,-4.85,-3.33,training
+28,84,2-ethoxyethyl acetate,CCOCCOC(=O)C,-5.31,-5.751,training
+29,318,iodoethane,CCI,-0.74,-0.609,training
+30,49,hydrogen sulfide,S,-0.7,-1.135,training
+31,506,benzene,c1ccccc1,-0.9,-0.806,training
+32,282,"2,6-dimethylpyridine",Cc1cccc(n1)C,-4.59,-3.443,test
+33,73,4-chloro-3-methyl-phenol,Cc1cc(ccc1Cl)O,-6.79,-5.14,training
+34,552,isopropyl formate,CC(C)OC=O,-2.02,-3.591,training
+35,429,"2,2,4-trimethylpentane",CC(C)CC(C)(C)C,2.89,2.542,training
+36,126,trichloro(nitro)methane,C([N+](=O)[O-])(Cl)(Cl)Cl,-1.45,-0.379,test
+37,190,1-cyclohexylethanone,CC(=O)C1CCCCC1,-3.9,-4.003,valid
+38,244,"1,2,3,5-tetrachlorobenzene",c1c(cc(c(c1Cl)Cl)Cl)Cl,-1.62,0.136,training
+39,69,2-isopropylsulfanylpropane,CC(C)SC(C)C,-1.21,0.14,training
+40,116,"3,5,5-trimethylcyclohex-2-en-1-one",CC1=CC(=O)CC(C1)(C)C,-5.18,-4.088,training
+41,201,2-methylpent-1-ene,CCCC(=C)C,1.47,2.486,training
+42,515,"2,4-dimethylpentan-3-one",CC(C)C(=O)C(C)C,-2.74,-2.629,test
+43,336,ibuprofen,C[C@@H](c1ccc(cc1)CC(C)C)C(=O)O,-7.0,-10.857,test
+44,417,pentanal,CCCCC=O,-3.03,-2.927,training
+45,262,heptan-1-ol,CCCCCCCO,-4.21,-2.917,training
+46,223,2-nitrophenol,c1ccc(c(c1)[N+](=O)[O-])O,-4.58,-5.667,training
+47,397,butanal,CCCC=O,-3.18,-3.044,training
+48,316,hydrazine,NN,-9.3,-6.508,test
+49,290,"2,3,7,8-tetrachlorodibenzo-p-dioxin",c1c2c(cc(c1Cl)Cl)Oc3cc(c(cc3O2)Cl)Cl,-3.37,-2.54,training
+50,85,"1,1-diphenylethene",C=C(c1ccccc1)c2ccccc2,-2.78,-2.47,training
+51,513,ethane,CC,1.83,2.465,test
+52,255,3-ethylphenol,CCc1cccc(c1)O,-6.25,-5.272,training
+53,334,"1,4-dimethylnaphthalene",Cc1ccc(c2c1cccc2)C,-2.82,-3.081,training
+54,622,butyl paraben,CCCCOC(=O)c1ccc(cc1)O,-8.72,-8.771,training
+55,314,isopropyl acetate,CC(C)OC(=O)C,-2.64,-3.371,training
+56,154,nonan-5-one,CCCCC(=O)CCCC,-2.64,-2.364,training
+57,356,"2,6-dichlorosyringaldehyde",COc1c(c(c(c(c1Cl)C=O)Cl)OC)O,-8.68,-9.846,test
+58,175,2-methoxyethanamine,COCCN,-6.55,-5.027,training
+59,304,propan-1-amine,CCCN,-4.39,-3.053,training
+60,330,"3-(dimethoxyphosphinothioylsulfanylmethyl)-1,2,3-benzotriazin-4-one",COP(=S)(OC)SCn1c(=O)c2ccccc2nn1,-10.03,-14.106,training
+61,546,1-butoxy-2-propanol,CCCCOC[C@H](C)O,-5.73,-3.891,training
+62,26,"1,3,5-trichlorobenzene",c1c(cc(cc1Cl)Cl)Cl,-0.78,0.326,test
+63,570,benzamide,c1ccc(cc1)C(=O)N,-11.0,-10.412,training
+64,640,methyl 4-nitrobenzoate,COC(=O)c1ccc(cc1)[N+](=O)[O-],-6.88,-6.588,training
+65,179,3-methoxyaniline,COc1cccc(c1)N,-7.29,-7.201,training
+66,17,6-chlorouracil,c1c(=O)[nH]c(=O)[nH]c1Cl,-15.83,-15.128,training
+67,199,"2-chloro-1-(2,4-dichlorophenyl)ethenyl diethyl phosphate",CCOP(=O)(OCC)O/C(=C/Cl)/c1ccc(cc1Cl)Cl,-7.07,-9.029,training
+68,352,iodomethane,CI,-0.89,-0.641,training
+69,388,2-chloroaniline,c1ccc(c(c1)N)Cl,-4.91,-4.847,training
+70,452,1-chloro-2-methyl-benzene,Cc1ccccc1Cl,-1.14,-0.473,training
+71,246,"(2S,5R)-2-isopropyl-5-methylcyclohexanone",C[C@@H]1CC[C@H](C(=O)C1)C(C)C,-2.53,-3.523,training
+72,411,sec-butylbenzene,CC[C@H](C)c1ccccc1,-0.45,-0.22,training
+73,163,trimethoxymethylbenzene,COC(c1ccccc1)(OC)OC,-4.04,-5.559,training
+74,89,1-chlorodibenzo-p-dioxin,c1ccc2c(c1)Oc3cccc(c3O2)Cl,-3.52,-4.473,training
+75,208,2-hydroxybenzaldehyde,c1ccc(c(c1)C=O)O,-4.68,-8.809,training
+76,0,propyl formate,CCCOC=O,-2.48,-3.699,training
+77,484,hexachlorobenzene,c1(c(c(c(c(c1Cl)Cl)Cl)Cl)Cl)Cl,-2.33,0.379,training
+78,321,pyrene,c1cc2ccc3cccc4c3c2c(c1)cc4,-4.52,-6.79,valid
+79,527,benzenethiol,c1ccc(cc1)S,-2.55,-1.501,training
+80,492,4-propylguaiacol,CCCc1ccc(c(c1)OC)O,-5.26,-4.127,valid
+81,471,3-methylpyridine,Cc1cccnc1,-4.77,-3.221,test
+82,193,2-methoxyphenol,COc1ccccc1O,-5.94,-4.746,valid
+83,125,5-bromouracil,c1c(c(=O)[nH]c(=O)[nH]1)Br,-18.17,-17.298,training
+84,129,"penta-1,4-diene",C=CCC=C,0.93,2.357,test
+85,204,"(2S,3R,4S,5R)-oxane-2,3,4,5-tetrol",C1[C@H]([C@@H]([C@H]([C@H](O1)O)O)O)O,-20.52,-14.148,training
+86,118,N-propylpropan-1-amine,CCCNCCC,-3.65,-2.233,training
+87,592,"1,3-dichloro-2-(2,6-dichlorophenyl)benzene",c1cc(c(c(c1)Cl)c2c(cccc2Cl)Cl)Cl,-2.28,-1.226,valid
+88,293,"3,3-dimethylbutan-2-one",CC(=O)C(C)(C)C,-3.11,-3.234,training
+89,108,fluoromethane,CF,-0.22,0.881,training
+90,524,6-isopropyl-3-methyl-1-cyclohex-2-enone,CC1=CC(=O)[C@@H](CC1)C(C)C,-4.51,-3.825,training
+91,298,1-isopropyl-4-methyl-benzene,Cc1ccc(cc1)C(C)C,-0.68,-0.456,training
+92,425,3-nitrophenol,c1cc(cc(c1)O)[N+](=O)[O-],-9.62,-7.889,training
+93,174,"1,2,3,4-tetrachloro-5-(3,4-dichlorophenyl)benzene",c1cc(c(cc1c2cc(c(c(c2Cl)Cl)Cl)Cl)Cl)Cl,-3.04,-1.083,training
+94,134,morpholine,C1COCCN1,-7.17,-6.116,training
+95,410,bromoform,C(Br)(Br)Br,-2.13,-0.531,training
+96,127,pentyl acetate,CCCCCOC(=O)C,-2.51,-2.565,training
+97,93,pentan-1-amine,CCCCCN,-4.09,-2.835,training
+98,283,2-methoxyethanol,COCCO,-6.619999999999999,-4.686,training
+99,560,quinone,C1=CC(=O)C=CC1=O,-6.5,-6.96,training
+100,236,"2,3,4-trimethylpentane",CC(C)C(C)C(C)C,2.56,2.674,training
+101,149,1-bromoheptane,CCCCCCCBr,0.34,1.223,valid
+102,491,butylbenzene,CCCCc1ccccc1,-0.4,-0.227,training
+103,117,"2,3-dimethylbuta-1,3-diene",CC(=C)C(=C)C,0.4,1.862,training
+104,545,but-2-enal,C/C=C/C=O,-4.22,-3.341,valid
+105,22,decan-2-one,CCCCCCCCC(=O)C,-2.34,-2.573,test
+106,474,bromoethane,CCBr,-0.74,0.487,training
+107,604,9H-fluorene,c1ccc-2c(c1)Cc3c2cccc3,-3.35,-4.269,training
+108,113,"2,6-dimethylnaphthalene",Cc1ccc2cc(ccc2c1)C,-2.63,-2.848,training
+109,496,butadiene,C=CC=C,0.56,1.955,training
+110,596,1-bromooctane,CCCCCCCCBr,0.52,1.352,training
+111,189,trimethyl phosphate,COP(=O)(OC)OC,-8.7,-10.642,training
+112,479,2-methylpropanal,CC(C)C=O,-2.86,-2.968,training
+113,51,methylparathion,COP(=S)(OC)Oc1ccc(cc1)[N+](=O)[O-],-7.19,-10.466,training
+114,550,"2,7-dichlorodibenzo-p-dioxin",c1cc2c(cc1Cl)Oc3ccc(cc3O2)Cl,-3.67,-3.321,training
+115,317,"1,4-dimethylcyclohexane",CC1CCC(CC1)C,2.11,1.918,valid
+116,423,"(Z)-1,2-dichloroethylene",C(=C\Cl)\Cl,-1.17,1.156,training
+117,342,nonanal,CCCCCCCCC=O,-2.07,-2.336,training
+118,605,1-methoxypropane,CCCOC,-1.66,-0.598,training
+119,368,2-methylpentan-2-ol,CCCC(C)(C)O,-3.92,-2.779,training
+120,620,"2,4-dimethylphenol",Cc1ccc(c(c1)C)O,-6.01,-4.98,training
+121,297,octafluorocyclobutane,C1(C(C(C1(F)F)(F)F)(F)F)(F)F,3.43,3.077,test
+122,455,"1,2,3-trichloro-5-(2,5-dichlorophenyl)benzene",c1cc(c(cc1Cl)c2cc(c(c(c2)Cl)Cl)Cl)Cl,-3.61,-0.922,training
+123,340,"(2Z)-3,7-dimethylocta-2,6-dien-1-ol",CC(=CCC/C(=C\CO)/C)C,-4.78,-2.597,training
+124,480,methoxyethane,CCOC,-2.1,-0.71,training
+125,103,3-nitrooxypropyl nitrate,C(CO[N+](=O)[O-])CO[N+](=O)[O-],-4.8,-5.322,training
+126,55,4-hydroxybenzonitrile,c1cc(ccc1C#N)O,-10.17,-8.39,training
+127,107,anisole,COc1ccccc1,-2.45,-2.318,training
+128,381,1-methylimidazole,Cn1ccnc1,-8.41,-6.282,test
+129,503,"1,2,3,4-tetrachloro-5-(3,4,5-trichlorophenyl)benzene",c1c(cc(c(c1Cl)Cl)Cl)c2cc(c(c(c2Cl)Cl)Cl)Cl,-3.17,-0.822,test
+130,254,o-cresol,Cc1ccccc1O,-5.9,-5.076,test
+131,123,4-methyl-2-methoxyphenol,Cc1ccc(c(c1)OC)O,-5.8,-4.547,training
+132,472,naphthalen-1-ol,c1ccc2c(c1)cccc2O,-7.67,-7.137,training
+133,573,n-butane,CCCC,2.1,2.588,training
+134,310,octanal,CCCCCCCC=O,-2.29,-2.57,training
+135,207,1-nitropropane,CCC[N+](=O)[O-],-3.34,-1.632,training
+136,160,pentan-1-ol,CCCCCO,-4.57,-3.054,training
+137,338,benzaldehyde,c1ccc(cc1)C=O,-4.02,-5.058,valid
+138,536,3-methyl-1H-indole,Cc1c[nH]c2c1cccc2,-5.88,-8.161,training
+139,256,"2-chloro-2-(difluoromethoxy)-1,1,1-trifluoro-ethane",[C@@H](C(F)(F)F)(OC(F)F)Cl,0.1,-1.156,training
+140,54,prop-1-yne,CC#C,-0.48,0.065,training
+141,260,butan-2-ol,CC[C@H](C)O,-4.62,-3.145,training
+142,67,anthracene,c1ccc2cc3ccccc3cc2c1,-3.95,-5.187,training
+143,521,4-ethylpyridine,CCc1ccncc1,-4.73,-3.19,training
+144,531,1-butoxybutane,CCCCOCCCC,-0.83,0.139,training
+145,167,diphenyl ether,c1ccc(cc1)Oc2ccccc2,-2.87,-2.81,training
+146,252,tert-butylbenzene,CC(C)(C)c1ccccc1,-0.44,-0.803,test
+147,416,2-methyltetrahydrofuran,C[C@H]1CCCO1,-3.3,-1.984,valid
+148,610,cyclohexanone,C1CCC(=O)CC1,-4.91,-4.18,training
+149,534,acetaldehyde,CC=O,-3.5,-3.372,test
+150,271,heptanal,CCCCCCC=O,-2.67,-2.704,training
+151,242,"N,N-dimethylaniline",CN(C)c1ccccc1,-3.45,-4.426,training
+152,196,"methyl 2,2-dimethylpropanoate",CC(C)(C)C(=O)OC,-2.4,-3.304,test
+153,511,propyl paraben,CCCOC(=O)c1ccc(cc1)O,-9.37,-8.945,training
+154,232,"1,1-diethoxyethane",CCOC(C)OCC,-3.28,-1.795,training
+155,498,"2,3-dimethylpyridine",Cc1cccnc1C,-4.82,-3.367,training
+156,238,diethyl propanedioate,CCOC(=O)CC(=O)OCC,-6.0,-6.716,training
+157,122,naproxen,C[C@@H](c1ccc2cc(ccc2c1)OC)C(=O)O,-10.21,-12.199,training
+158,305,1-methylpyrrole,Cn1cccc1,-2.89,-2.374,training
+159,248,"3,4-dichlorophenol",c1cc(c(cc1O)Cl)Cl,-7.29,-5.139,training
+160,209,"N,N-dimethylmethanamine",CN(C)C,-3.2,-2.636,test
+161,42,"N-(3,4-dichlorophenyl)propanimidic acid",CCC(=O)Nc1ccc(c(c1)Cl)Cl,-7.78,-9.409,training
+162,501,hexan-2-one,CCCCC(=O)C,-3.28,-3.006,training
+163,90,1-methylcyclohexene,CC1=CCCCC1,0.67,1.338,training
+164,41,"2,2-dimethylpentane",CCCC(C)(C)C,2.88,2.686,training
+165,554,dicamba,COc1c(ccc(c1C(=O)O)Cl)Cl,-9.86,-8.658,training
+166,468,4-nitrophenol,c1cc(ccc1[N+](=O)[O-])O,-10.64,-8.472,test
+167,634,2-isobutylpyrazine,CC(C)Cc1cnccn1,-5.04,-5.495,training
+168,543,"1,4-dichlorobutane",C(CCCl)CCl,-2.32,-0.404,training
+169,366,ketoprofen,C[C@@H](c1cccc(c1)C(=O)c2ccccc2)C(=O)O,-10.78,-17.242,training
+170,412,ethoxybenzene,CCOc1ccccc1,-2.22,-2.254,training
+171,504,1-methylpiperazine,CN1CCNCC1,-7.77,-8.173,training
+172,439,butyric acid,CCCC(=O)O,-6.35,-9.434,training
+173,99,"hexa-1,5-diene",C=CCCC=C,1.01,2.487,training
+174,419,4-methylaniline,Cc1ccc(cc1)N,-5.57,-5.494,training
+175,171,methylsulfanylmethane,CSC,-1.61,0.44,training
+176,516,cyclopentene,C1CC=CC1,0.56,1.23,training
+177,277,nonan-1-ol,CCCCCCCCCO,-3.88,-2.564,training
+178,300,hexan-1-ol,CCCCCCO,-4.4,-3.0,training
+179,405,bromobenzene,c1ccc(cc1)Br,-1.46,-0.947,valid
+180,576,4-methylbenzaldehyde,Cc1ccc(cc1)C=O,-4.27,-5.014,training
+181,544,4-methylmorpholine,CN1CCOCC1,-6.32,-5.774,training
+182,202,1-chloro-2-(2-chloroethoxy)ethane,C(CCl)OCCCl,-4.23,-2.248,training
+183,333,neopentane,CC(C)(C)C,2.51,2.506,training
+184,264,Amitriptyline,CN(C)CCC=C1c2ccccc2CCc3c1cccc3,-7.43,-7.349,test
+185,561,"1,2,3,4-tetrachloro-5-phenyl-benzene",c1ccc(cc1)c2cc(c(c(c2Cl)Cl)Cl)Cl,-3.48,-1.31,test
+186,312,"2,3-dimethylpentane",CC[C@@H](C)C(C)C,2.52,2.625,training
+187,505,pyrrole,c1cc[nH]c1,-4.78,-4.014,valid
+188,266,propionic acid,CCC(=O)O,-6.46,-9.088,valid
+189,65,cyclohexanol,C1CCC(CC1)O,-5.46,-4.178,training
+190,287,"2-amino-9,10-anthraquinone",c1ccc2c(c1)C(=O)c3ccc(cc3C2=O)N,-11.53,-13.895,training
+191,348,"1-N,1-N-diethyl-2,6-dinitro-4-(trifluoromethyl)benzene-1,3-diamine",CCN(CC)c1c(cc(c(c1[N+](=O)[O-])N)C(F)(F)F)[N+](=O)[O-],-5.66,-7.503,valid
+192,61,3-methoxyphenol,COc1cccc(c1)O,-7.66,-6.969,training
+193,322,aldicarb,CC(C)(/C=N\OC(=O)NC)SC,-9.84,-9.679,training
+194,172,flurbiprofen,C[C@@H](c1ccc(c(c1)F)c2ccccc2)C(=O)O,-8.42,-13.953,training
+195,384,"3,3-dimethylpentane",CCC(C)(C)CC,2.56,2.593,training
+196,580,"1,2-dibromoethane",C(CBr)Br,-2.33,-1.275,test
+197,360,2-methylpentan-3-ol,CC[C@H](C(C)C)O,-3.88,-2.416,training
+198,82,N-butylbutan-1-amine,CCCCNCCCC,-3.24,-2.076,training
+199,240,ethyl paraben,CCOC(=O)c1ccc(cc1)O,-9.2,-9.535,training
+200,558,1-iodopentane,CCCCCI,-0.14,-0.111,training
+201,153,"2,3-diacetoxypropyl acetate",CC(=O)OCC(COC(=O)C)OC(=O)C,-8.84,-12.333,training
+202,400,2-methylpropan-1-ol,CC(C)CO,-4.5,-3.13,training
+203,268,methyl cyclohexanecarboxylate,COC(=O)C1CCCCC1,-3.3,-4.376,training
+204,465,N-methylmethanamine,CNC,-4.29,-2.991,training
+205,493,ethyl propanoate,CCC(=O)OCC,-2.68,-3.221,training
+206,138,1-chlorohexane,CCCCCCCl,0.0,1.261,training
+207,379,ethyl butanoate,CCCC(=O)OCC,-2.49,-3.381,training
+208,574,phenyl formate,c1ccc(cc1)OC=O,-3.82,-5.442,training
+209,568,"1,2,3,4-tetrachlorodibenzo-p-dioxin",c1ccc2c(c1)Oc3c(c(c(c(c3Cl)Cl)Cl)Cl)O2,-3.81,-2.775,training
+210,433,"1,2,3,4-tetrachloro-5-(2,3,4-trichlorophenyl)benzene",c1cc(c(c(c1c2cc(c(c(c2Cl)Cl)Cl)Cl)Cl)Cl)Cl,-4.4,-0.805,training
+211,581,"1,2,4-trichlorodibenzo-p-dioxin",c1ccc2c(c1)Oc3c(cc(c(c3O2)Cl)Cl)Cl,-4.05,-3.16,training
+212,250,hexanamide,CCCCCC(=O)N,-9.31,-8.103,training
+213,431,trifluralin,CCCN(CCC)c1c(cc(cc1[N+](=O)[O-])C(F)(F)F)[N+](=O)[O-],-3.25,-2.023,test
+214,600,naphthalen-2-amine,c1ccc2cc(ccc2c1)N,-7.47,-8.003,training
+215,121,pentyl propanoate,CCCCCOC(=O)CC,-2.11,-2.176,training
+216,133,benzyl chloride,c1ccc(cc1)CCl,-1.93,-1.742,training
+217,587,hexanal,CCCCCC=O,-2.81,-2.86,training
+218,426,cyclopentanone,C1CCC(=O)C1,-4.7,-3.889,training
+219,263,diethyl butanedioate,CCOC(=O)CCC(=O)OCC,-5.71,-8.683,valid
+220,463,methylcyclopentane,CC1CCCC1,1.59,1.785,training
+221,547,pentanenitrile,CCCCC#N,-3.52,-2.147,valid
+222,214,1-propoxypropane,CCCOCCC,-1.16,-0.004,training
+223,402,1-phenylethanone,CC(=O)c1ccccc1,-4.58,-5.078,training
+224,445,propyl butanoate,CCCC(=O)OCCC,-2.28,-2.754,training
+225,186,"4-methoxy-N,N-dimethyl-benzamide",CN(C)C(=O)c1ccc(cc1)OC,-11.01,-9.625,training
+226,220,styrene,C=Cc1ccccc1,-1.24,-1.078,training
+227,194,2-methoxy-2-methyl-propane,CC(C)(C)OC,-2.21,-0.691,training
+228,151,"2,2,2-trifluoroethanol",C(C(F)(F)F)O,-4.31,-3.809,valid
+229,299,2-ethylpyridine,CCc1ccccn1,-4.33,-3.31,training
+230,315,4-methylpyridine,Cc1ccncc1,-4.93,-3.343,training
+231,168,"1,2-dichloroethane",C(CCl)Cl,-1.79,-0.363,training
+232,562,"1,2,4,5-tetrachloro-3-(3,4-dichlorophenyl)benzene",c1cc(c(cc1c2c(c(cc(c2Cl)Cl)Cl)Cl)Cl)Cl,-4.38,-0.705,test
+233,327,"1,2,3,4,7,8-hexachlorodibenzo-p-dioxin",c1c2c(cc(c1Cl)Cl)Oc3c(c(c(c(c3Cl)Cl)Cl)Cl)O2,-3.71,-1.878,valid
+234,539,chloro-fluoro-methane,C(F)Cl,-0.77,-0.171,training
+235,14,"1,4-dioxane",C1COCCO1,-5.06,-4.269,training
+236,76,oct-2-enal,CCCCC/C=C/C=O,-3.43,-2.706,training
+237,380,"1,2,3,4-tetrachloro-5-(2,3,4,6-tetrachlorophenyl)benzene",c1c(c(c(c(c1Cl)Cl)Cl)Cl)c2c(cc(c(c2Cl)Cl)Cl)Cl,-4.61,-0.039,training
+238,311,pirimor,Cc1c(nc(nc1OC(=O)N(C)C)N(C)C)C,-9.41,-13.87,training
+239,518,nitrobenzene,c1ccc(cc1)[N+](=O)[O-],-4.12,-3.46,training
+240,66,decan-1-ol,CCCCCCCCCCO,-3.64,-2.446,training
+241,213,chloromethane,CCl,-0.55,0.764,training
+242,7,2-chlorodibenzo-p-dioxin,c1ccc2c(c1)Oc3ccc(cc3O2)Cl,-3.1,-4.054,test
+243,281,"2,2-dimethylbutane",CCC(C)(C)C,2.51,2.495,test
+244,50,"1-(2-hydroxyethylamino)-9,10-anthraquinone",c1ccc2c(c1)C(=O)c3cccc(c3C2=O)NCCO,-14.21,-13.599,training
+245,594,methyl methanesulfonate,COS(=O)(=O)C,-4.87,-8.824,training
+246,456,"2-[(1R)-1-methylpropyl]-4,6-dinitro-phenolate",CC[C@@H](C)c1cc(cc(c1O)[N+](=O)[O-])[N+](=O)[O-],-6.23,-5.378,test
+247,616,acetamide,CC(=O)N,-9.71,-8.82,training
+248,259,diethyl (2R)-2-dimethoxyphosphinothioylsulfanylbutanedioate,CCOC(=O)C[C@H](C(=O)OCC)SP(=S)(OC)OC,-8.15,-11.194,training
+249,165,5-trifluoromethyluracil,c1c(c(=O)[nH]c(=O)[nH]1)C(F)(F)F,-15.46,-17.349,training
+250,418,"(2R,5R)-2-methyl-5-(1-methylethenyl)-cyclohexanone",C[C@@H]1CC[C@H](CC1=O)C(=C)C,-3.75,-3.344,valid
+251,488,1-(3-pyridyl)ethanone,CC(=O)c1cccnc1,-8.26,-7.844,training
+252,556,"3,4-dimethylpyridine",Cc1ccncc1C,-5.22,-3.201,training
+253,627,pyrrolidine,C1CCNC1,-5.48,-4.278,training
+254,319,diethoxymethoxybenzene,CCOC(OCC)Oc1ccccc1,-5.23,-5.203,test
+255,532,ethanamine,CCN,-4.5,-3.156,valid
+256,292,1-(p-tolyl)ethanone,Cc1ccc(cc1)C(=O)C,-4.7,-4.91,training
+257,499,acetic acid,CC(=O)O,-6.69,-7.281,training
+258,582,2-chlorosyringaldehyde,COc1cc(c(c(c1O)OC)Cl)C=O,-7.78,-8.292,training
+259,177,1-ethylnaphthalene,CCc1cccc2c1cccc2,-2.4,-2.961,training
+260,62,"1,3,5-trichloro-2-(2,6-dichlorophenyl)benzene",c1cc(c(c(c1)Cl)c2c(cc(cc2Cl)Cl)Cl)Cl,-1.96,-0.477,training
+261,451,methanethiol,CS,-1.2,-0.273,training
+262,478,2-isopropoxypropane,CC(C)OC(C)C,-0.53,-0.178,test
+263,435,1-methylnaphthalene,Cc1cccc2c1cccc2,-2.44,-3.212,training
+264,424,N-methylaniline,CNc1ccccc1,-4.69,-5.719,training
+265,162,"cyclohepta-1,3,5-triene",C1C=CC=CC=C1,-0.99,-0.098,training
+266,522,diethoxy-(4-nitrophenoxy)-thioxo-$l^{5}-phosphane,CCOP(=S)(OCC)Oc1ccc(cc1)[N+](=O)[O-],-6.74,-9.211,valid
+267,502,chloroethylene,C=CCl,-0.59,1.162,training
+268,6,quinoline,c1ccc2c(c1)cccn2,-5.72,-4.989,training
+269,234,1-bromo-2-methyl-propane,CC(C)CBr,-0.03,0.756,training
+270,139,undecan-2-one,CCCCCCCCCC(=O)C,-2.15,-2.201,training
+271,641,butanenitrile,CCCC#N,-3.64,-2.287,training
+272,415,2-ethylphenol,CCc1ccccc1O,-5.66,-4.768,training
+273,624,decane,CCCCCCCCCC,3.16,3.335,training
+274,170,4-methylpentan-2-one,CC(C)CC(=O)C,-3.05,-3.116,valid
+275,19,"1,1,2-trichloroethylene",C(=C(Cl)Cl)Cl,-0.44,0.818,training
+276,625,3-chloropyridine,c1cc(cnc1)Cl,-4.01,-2.767,training
+277,626,2-chloro-2-methyl-propane,CC(C)(C)Cl,1.09,0.826,training
+278,526,"(E)-1,2-dichloroethylene",C(=C/Cl)\Cl,-0.78,1.024,training
+279,341,3-chloroaniline,c1cc(cc(c1)Cl)N,-5.82,-5.138,training
+280,81,methyl 2-chloroacetate,COC(=O)CCl,-4.0,-3.816,training
+281,47,"2,3-dimethylnaphthalene",Cc1cc2ccccc2cc1C,-2.78,-2.953,training
+282,192,heptan-1-amine,CCCCCCCN,-3.79,-2.554,training
+283,440,"1,2,3,4-tetrachlorobenzene",c1cc(c(c(c1Cl)Cl)Cl)Cl,-1.34,-0.304,training
+284,147,terbacil,Cc1c(c(=O)n(c(=O)[nH]1)C(C)(C)C)Cl,-11.14,-13.769,training
+285,228,1-methyl-2-nitro-benzene,Cc1ccccc1[N+](=O)[O-],-3.58,-3.133,training
+286,227,sulfolane,C1CC[S+2](C1)([O-])[O-],-8.61,-9.624,training
+287,537,methoxymethane,COC,-1.91,-0.853,training
+288,28,pent-2-ene,CC/C=C\C,1.31,2.374,training
+289,18,111-trifluoropropan-2-ol,C[C@H](C(F)(F)F)O,-4.2,-3.486,training
+290,109,"2,2,5-trimethylhexane",CC(C)CCC(C)(C)C,2.93,2.97,training
+291,601,2-acetoxyethyl acetate,CC(=O)OCCOC(=O)C,-6.34,-8.292,test
+292,365,"1,3,5-trichloro-2-phenyl-benzene",c1ccc(cc1)c2c(cc(cc2Cl)Cl)Cl,-2.16,-1.151,training
+293,608,octan-1-ol,CCCCCCCCO,-4.09,-2.69,training
+294,128,indane,c1ccc2c(c1)CCC2,-1.46,-1.752,training
+295,579,2-iodophenol,c1ccc(c(c1)O)I,-6.2,-3.221,training
+296,512,"3,3,3-trimethoxypropanenitrile",COC(CC#N)(OC)OC,-6.4,-5.859,training
+297,195,phenol,c1ccc(cc1)O,-6.6,-5.707,training
+298,520,methyl formate,COC=O,-2.78,-4.028,training
+299,403,3-methylbutanoic acid,CC(C)CC(=O)O,-6.09,-8.844,training
+300,638,1-bromopropane,CCCBr,-0.56,0.579,training
+301,375,4-nitroaniline,c1cc(ccc1N)N(=O)=O,-9.82,-9.416,training
+302,584,"1,2,3,7-tetrachlorodibenzo-p-dioxin",c1cc2c(cc1Cl)Oc3cc(c(c(c3O2)Cl)Cl)Cl,-3.84,-2.66,training
+303,105,1-chloro-pentane,CCCCCCl,-0.1,1.084,training
+304,385,methylsulfanylbenzene,CSc1ccccc1,-2.73,-1.325,training
+305,448,butan-1-ol,CCCCO,-4.72,-3.232,training
+306,523,2-methylbenzaldehyde,Cc1ccccc1C=O,-3.93,-4.554,training
+307,607,"1,1,2,2-tetrachloroethane",C(C(Cl)Cl)(Cl)Cl,-2.37,-0.534,training
+308,391,1-iodoheptane,CCCCCCCI,0.27,0.228,training
+309,53,4-propylphenol,CCCc1ccc(cc1)O,-5.21,-5.211,training
+310,52,"(2R,3R,4S,5S,6R)-6-(hydroxymethyl)tetrahydropyran-2,3,4,5-tetrol",C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O1)O)O)O)O)O,-25.47,-18.095,training
+311,60,"2,3-dimethylbutane",CC(C)C(C)C,2.34,2.468,training
+312,575,1-iodobutane,CCCCI,-0.25,-0.223,valid
+313,39,isobutyl nitrate,CC(C)CO[N+](=O)[O-],-1.88,-1.835,training
+314,548,ethanethiol,CCS,-1.14,-0.395,valid
+315,176,1-(4-pyridyl)ethanone,CC(=O)c1ccncc1,-7.62,-7.566,valid
+316,414,3-methylbutan-1-ol,CC(C)CCO,-4.42,-3.237,training
+317,466,"3,4-dimethylphenol",Cc1ccc(cc1C)O,-6.5,-5.471,test
+318,387,"1,1,1,2-tetrachloroethane",C(C(Cl)(Cl)Cl)Cl,-1.43,-0.091,test
+319,291,cyclopentanol,C1CCC(C1)O,-5.49,-4.29,training
+320,606,"1,4-dichlorobenzene",c1cc(ccc1Cl)Cl,-1.01,-0.19,valid
+321,173,2-methylpyrazine,Cc1cnccn1,-5.51,-6.161,training
+322,131,2-chloropropane,CC(C)Cl,-0.25,0.833,training
+323,308,methyl pentanoate,CCCCC(=O)OC,-2.56,-3.492,training
+324,289,"1-amino-4-hydroxy-9,10-anthracenedione",c1ccc2c(c1)C(=O)c3c(ccc(c3C2=O)O)N,-9.53,-10.984,training
+325,617,ethyl acetate,CCOC(=O)C,-2.94,-3.745,training
+326,64,ethylbenzene,CCc1ccccc1,-0.79,-0.606,test
+327,92,isobutane,CC(C)C,2.3,2.535,training
+328,94,methyl propanoate,CCC(=O)OC,-2.93,-3.652,training
+329,29,trifluoromethylbenzene,c1ccc(cc1)C(F)(F)F,-0.25,-0.57,training
+330,533,2-(nitrooxy)ethan-1-ol,C(CO[N+](=O)[O-])O,-8.18,-6.676,training
+331,344,methyl octanoate,CCCCCCCC(=O)OC,-2.04,-3.035,training
+332,257,"1,1,2,3,3,3-hexafluoroprop-1-ene",C(=C(F)F)(C(F)(F)F)F,2.93,2.305,training
+333,444,imidazole,c1cnc[nH]1,-9.63,-7.972,training
+334,430,5-chlorouracil,c1c(c(=O)[nH]c(=O)[nH]1)Cl,-17.74,-16.612,training
+335,395,hexan-1-amine,CCCCCCN,-3.95,-2.772,training
+336,184,2-ethylpyrazine,CCc1cnccn1,-5.45,-5.809,training
+337,442,"1,2,4-trimethylbenzene",Cc1ccc(c(c1)C)C,-0.86,-0.795,training
+338,226,dialifor,CCOP(=S)(OCC)S[C@@H](CCl)N1C(=O)c2ccccc2C1=O,-5.74,-16.515,training
+339,325,"1,2-dimethoxyethane",COCCOC,-4.84,-3.103,training
+340,476,"2,6-dimethylphenol",Cc1cccc(c1O)C,-5.26,-4.308,valid
+341,112,"1,1,1,2,2-pentachloroethane",C(C(Cl)(Cl)Cl)(Cl)Cl,-1.23,0.059,training
+342,408,2-nitropropane,CC(C)[N+](=O)[O-],-3.13,-1.741,training
+343,294,acetonitrile,CC#N,-3.88,-2.789,training
+344,598,4-chloroaniline,c1cc(ccc1N)Cl,-5.9,-5.281,valid
+345,135,2-methylbut-2-ene,CC=C(C)C,1.31,2.272,training
+346,215,"1,3-bis-(nitrooxy)butane",C[C@@H](CCO[N+](=O)[O-])O[N+](=O)[O-],-4.29,-4.944,test
+347,530,"2,3-dichlorodibenzo-p-dioxin",c1ccc2c(c1)Oc3cc(c(cc3O2)Cl)Cl,-3.56,-3.59,training
+348,525,"2,3-dimethylphenol",Cc1cccc(c1C)O,-6.16,-5.148,training
+349,332,triethylphosphate,CCOP(=O)(OCC)OCC,-7.5,-10.251,valid
+350,393,2-methylpyridine,Cc1ccccn1,-4.63,-3.501,test
+351,37,hex-1-yne,CCCCC#C,0.29,0.553,test
+352,44,propylbenzene,CCCc1ccccc1,-0.53,-0.511,training
+353,157,methylsulfonylmethane,CS(=O)(=O)C,-10.08,-10.559,training
+354,459,diiodomethane,C(I)I,-2.49,-1.882,training
+355,212,ethylsulfanylethane,CCSCC,-1.46,0.299,training
+356,309,2-ethoxyethanol,CCOCCO,-6.69,-4.407,training
+357,9,carbon tetrachloride,C(Cl)(Cl)(Cl)Cl,0.08,1.185,training
+358,390,methyl acetate,CC(=O)OC,-3.13,-3.83,test
+359,639,"1,2-dichloropropane",C[C@@H](CCl)Cl,-1.27,-0.265,training
+360,71,2-methylpropan-2-ol,CC(C)(C)O,-4.47,-3.288,test
+361,346,3-methylpentane,CCC(C)CC,2.51,2.613,training
+362,409,oct-1-ene,CCCCCCC=C,1.92,2.895,training
+363,555,chlorobenzene,c1ccc(cc1)Cl,-1.12,-0.475,training
+364,370,propanethiol,CCCS,-1.1,-0.182,training
+365,31,captan,C1C=CC[C@@H]2[C@@H]1C(=O)N(C2=O)SC(Cl)(Cl)Cl,-9.01,-8.718,training
+366,21,isobutyl 2-methylpropanoate,CC(C)COC(=O)C(C)C,-1.69,-2.58,training
+367,572,pyridine,c1ccncc1,-4.69,-3.508,training
+368,237,"3,5-dimethylpyridine",Cc1cc(cnc1)C,-4.84,-2.869,training
+369,401,propan-2-ol,CC(C)O,-4.74,-3.427,valid
+370,181,ethyl formate,CCOC=O,-2.56,-3.867,training
+371,80,1-(4-methoxyphenyl)ethanone,CC(=O)c1ccc(cc1)OC,-4.4,-6.575,training
+372,588,"2-chloro-1,1,1-trimethoxy-ethane",COC(CCl)(OC)OC,-4.59,-3.638,test
+373,612,fenuron,CN(C)C(=O)Nc1ccccc1,-9.13,-11.81,training
+374,422,naphthalen-1-yl N-methylcarbamate,CNC(=O)Oc1cccc2c1cccc2,-9.45,-10.436,training
+375,261,hexan-3-ol,CCC[C@H](CC)O,-4.06,-2.585,training
+376,142,diazinon,CCOP(=S)(OCC)Oc1cc(nc(n1)C(C)C)C,-6.48,-10.753,training
+377,275,"1,2-bis(trifluoromethyl)benzene",c1ccc(c(c1)C(F)(F)F)C(F)(F)F,1.07,-1.441,training
+378,58,"2-bromo-2-chloro-1,1,1-trifluoro-ethane",[C@@H](C(F)(F)F)(Cl)Br,-0.11,0.206,training
+379,91,chloroform,C(Cl)(Cl)Cl,-1.08,0.285,training
+380,97,"2,6-dimethylaniline",Cc1cccc(c1N)C,-5.21,-5.57,training
+381,407,"3,5-dichloro-2,6-dimethoxyphenol",COc1c(cc(c(c1O)OC)Cl)Cl,-6.44,-5.98,training
+382,585,ethoxyethane,CCOCC,-1.59,-0.617,training
+383,483,methyl hexanoate,CCCCCC(=O)OC,-2.49,-3.299,training
+384,178,1-benzylimidazole,c1ccc(cc1)Cn2ccnc2,-7.63,-7.997,test
+385,48,glycerol,C(C(CO)O)O,-13.43,-10.14,training
+386,16,1-methylpiperidine,CN1CCCCC1,-3.88,-3.467,training
+387,347,"1,2,4,5-tetrachlorobenzene",c1c(c(cc(c1Cl)Cl)Cl)Cl,-1.34,0.035,training
+388,40,naphthalen-2-ol,c1ccc2cc(ccc2c1)O,-8.11,-7.849,training
+389,591,non-1-ene,CCCCCCCC=C,2.06,2.995,training
+390,635,1-iodohexane,CCCCCCI,0.08,0.043,valid
+391,169,hexane,CCCCCC,2.48,2.851,training
+392,258,but-1-ene,CCC=C,1.38,2.367,training
+393,438,5-fluorouracil,c1c(c(=O)[nH]c(=O)[nH]1)F,-16.92,-16.371,training
+394,565,3-chloroprop-1-ene,C=CCCl,-0.57,0.944,training
+395,124,4-fluorophenol,c1cc(ccc1O)F,-6.19,-4.955,training
+396,358,ethanol,CCO,-5.0,-3.394,training
+397,145,carbofuran,CC1(Cc2cccc(c2O1)OC(=O)NC)C,-9.61,-11.126,training
+398,371,1-bromobutane,CCCCBr,-0.4,0.705,training
+399,535,pentan-2-ol,CCC[C@@H](C)O,-4.39,-2.945,training
+400,320,isopentyl formate,CC(C)CCOC=O,-2.13,-3.414,training
+401,98,pentanoic acid,CCCCC(=O)O,-6.16,-9.053,training
+402,396,ethylene glycol,C(CO)O,-9.3,-7.266,training
+403,469,biphenyl,c1ccc(cc1)c2ccccc2,-2.7,-3.143,valid
+404,374,octane,CCCCCCCC,2.88,3.088,training
+405,218,hex-1-ene,CCCCC=C,1.58,2.628,training
+406,68,"1,4-dimethylpiperazine",CN1CCN(CC1)C,-7.58,-7.874,training
+407,224,diethoxy-(ethylsulfanylmethylsulfanyl)-thioxo-$l^{5}-phosphane,CCOP(=S)(OCC)SCSCC,-4.37,-6.427,training
+408,115,"1,1-dichloroethane",CC(Cl)Cl,-0.84,0.187,training
+409,87,methyl benzoate,COC(=O)c1ccccc1,-3.92,-4.921,valid
+410,490,octan-2-one,CCCCCCC(=O)C,-2.88,-2.758,test
+411,63,pyridine-4-carbaldehyde,c1cnccc1C=O,-7.0,-7.338,training
+412,79,2-bromo-2-methyl-propane,CC(C)(C)Br,0.84,0.438,training
+413,326,profluralin,CCC[N@@](CC1CC1)c2c(cc(cc2[N+](=O)[O-])C(F)(F)F)[N+](=O)[O-],-2.45,-1.956,training
+414,231,piperidine,C1CCNCC1,-5.11,-3.873,valid
+415,337,mesitylene,Cc1cc(cc(c1)C)C,-0.9,-0.553,training
+416,166,pentylbenzene,CCCCCc1ccccc1,-0.23,-0.094,test
+417,509,"(1R)-2,2,2-trichloro-1-dimethoxyphosphoryl-ethanol",COP(=O)([C@H](C(Cl)(Cl)Cl)O)OC,-12.74,-13.424,training
+418,510,hexanoic acid,CCCCCC(=O)O,-6.21,-7.878,training
+419,443,"3,5-dimethylphenol",Cc1cc(cc(c1)O)C,-6.27,-5.444,training
+420,217,nonane,CCCCCCCCC,3.13,3.221,training
+421,563,2-bromopropane,CC(C)Br,-0.48,0.448,training
+422,577,heptan-2-one,CCCCCC(=O)C,-3.04,-2.945,training
+423,569,"(1R,2S,5R)-2-isopropyl-5-methylcyclohexanol",C[C@@H]1CC[C@H]([C@@H](C1)O)C(C)C,-3.2,-3.35,training
+424,111,"1,2-dimethylcyclohexane",C[C@@H]1CCCC[C@@H]1C,1.58,1.685,training
+425,453,trimethoxymethane,COC(OC)OC,-4.42,-4.625,training
+426,243,"1,4-dichloro-2-phenyl-benzene",c1ccc(cc1)c2cc(ccc2Cl)Cl,-2.46,-1.903,valid
+427,495,"1,2,2-trifluoroethoxybenzene",c1ccc(cc1)O[C@@H](C(F)F)F,-1.29,-3.043,training
+428,323,isopropenylbenzene,CC(=C)c1ccccc1,-1.24,-0.651,training
+429,406,"2,5-dimethylphenol",Cc1ccc(c(c1)O)C,-5.91,-5.014,training
+430,446,"2-N-ethyl-6-(methylsulfanyl)-4-N-(propan-2-yl)-1,3,5-triazine-2,4-diamine",CCNc1nc(nc(n1)SC)NC(C)C,-7.65,-10.552,training
+431,86,"1,2-dimethoxybenzene",COc1ccccc1OC,-5.33,-4.055,test
+432,235,caffeine,Cn1cnc2c1c(=O)n(c(=O)n2C)C,-12.64,-17.621,test
+433,273,"1,1,2,2-tetrachloroethylene",C(=C(Cl)Cl)(Cl)Cl,0.1,1.328,training
+434,394,ethyldisulfanylethane,CCSSCC,-1.64,-0.979,training
+435,203,piperazine,C1CNCCN1,-7.4,-8.481,training
+436,398,m-bis(trifluoromethyl)benzene,c1cc(cc(c1)C(F)(F)F)C(F)(F)F,1.07,-0.34,test
+437,38,"2-chloro-1,1,1-trifluoro-ethane",C(C(F)(F)F)Cl,0.06,0.233,training
+438,351,"2-(2,3-dimethylphenyl)aminobenzoic acid",Cc1cccc(c1C)Nc2ccccc2C(=O)O,-6.78,-7.665,training
+439,328,"(3R)-3,7-Dimethylocta-1,6-dien-3-yl acetate",CC(=CCC[C@](C)(C=C)OC(=O)C)C,-2.49,-2.964,training
+440,276,fluorobenzene,c1ccc(cc1)F,-0.8,-0.041,test
+441,373,butyl nitrate,CCCCO[N+](=O)[O-],-2.09,-1.938,training
+442,24,4-methyl-1H-imidazole,Cc1c[nH]cn1,-10.27,-8.205,training
+443,57,"1,2,3,4,5-pentachloro-6-(2,3,4,5,6-pentachlorophenyl)benzene",c1(c(c(c(c(c1Cl)Cl)Cl)Cl)Cl)c2c(c(c(c(c2Cl)Cl)Cl)Cl)Cl,-2.98,0.76,training
+444,441,"2,5-dimethyltetrahydrofuran",C[C@H]1CC[C@@H](O1)C,-2.92,-1.787,training
+445,553,chlordane,C1[C@H]([C@@H]2[C@H]([C@H]1Cl)[C@]3(C(=C([C@@]2(C3(Cl)Cl)Cl)Cl)Cl)Cl)Cl,-3.44,-3.23,training
+446,427,"2-bromo-1,1,1,2-tetrafluoro-ethane",[C@@H](C(F)(F)F)(F)Br,0.5,0.234,training
+447,274,2-chlorophenol,c1ccc(c(c1)O)Cl,-4.55,-3.317,training
+448,59,"1,4-dibromobenzene",c1cc(ccc1Br)Br,-2.3,-1.091,training
+449,637,hept-1-yne,CCCCCC#C,0.6,0.639,training
+450,378,cyclohexene,C1CCC=CC1,0.14,1.175,training
+451,586,2-butoxyethanol,CCCCOCCO,-6.25,-3.85,training
+452,101,isobutylbenzene,CC(C)Cc1ccccc1,0.16,-0.257,training
+453,159,"N,N-diethylethanamine",CCN(CC)CC,-3.22,-1.955,training
+454,148,2-phenylethanol,c1ccc(cc1)CCO,-6.79,-5.28,training
+455,1,acetone,CC(=O)C,-3.8,-3.506,training
+456,161,propanal,CCC=O,-3.43,-3.148,training
+457,449,cyanuric acid,c1(=O)[nH]c(=O)[nH]c(=O)[nH]1,-18.06,-21.762,training
+458,467,benzonitrile,c1ccc(cc1)C#N,-4.1,-3.238,training
+459,210,1-chloro-2-phenyl-benzene,c1ccc(cc1)c2ccccc2Cl,-2.69,-2.508,valid
+460,34,2-fluorophenol,c1ccc(c(c1)O)F,-5.29,-3.346,training
+461,353,4-ethylphenol,CCc1ccc(cc1)O,-6.13,-5.453,training
+462,253,4-methoxyaniline,COc1ccc(cc1)N,-7.48,-7.016,valid
+463,288,chloro-difluoro-methane,C(F)(F)Cl,-0.5,-0.067,test
+464,249,"2,2-dichloro-1,1-difluoro-1-methoxy-ethane",COC(C(Cl)Cl)(F)F,-1.12,-0.685,training
+465,611,"(2R,3R,4R,5R)-Hexan-1,2,3,4,5,6-hexol",C([C@H]([C@H]([C@@H]([C@@H](CO)O)O)O)O)O,-23.62,-18.162,training
+466,345,3-chlorophenol,c1cc(cc(c1)Cl)O,-6.62,-5.018,training
+467,130,"N-methyl-N-(2,2,2-trifluoroethyl)aniline",CN(CC(F)(F)F)c1ccccc1,-1.92,-3.964,valid
+468,335,nitromethane,C[N+](=O)[O-],-4.02,-2.075,training
+469,158,1-bromo-2-chloro-ethane,C(CBr)Cl,-1.95,-0.8,training
+470,286,4-tert-butylphenol,CC(C)(C)c1ccc(cc1)O,-5.91,-5.543,training
+471,363,"1,3-dichlorobenzene",c1cc(cc(c1)Cl)Cl,-0.98,-0.11,training
+472,475,(2E)-hex-2-enal,CCC/C=C/C=O,-3.68,-3.123,training
+473,389,pyridine-4-carbonitrile,c1cnccc1C#N,-6.02,-5.765,training
+474,632,1-pyrrolidin-1-ylethanone,CC(=O)N1CCCC1,-9.8,-7.831,training
+475,302,isohexane,CCCC(C)C,2.51,2.808,valid
+476,462,propanenitrile,CCC#N,-3.84,-2.491,training
+477,364,hexyl acetate,CCCCCCOC(=O)C,-2.26,-2.219,training
+478,597,1-bromo-4-methyl-benzene,Cc1ccc(cc1)Br,-1.39,-0.894,training
+479,32,"1,2,3-trimethylbenzene",Cc1cccc(c1C)C,-1.21,-0.883,training
+480,485,"(1S,5R)-2-methyl-5-(1-methylethenyl)-2-cyclohexen-1-ol",CC1=CC[C@H](C[C@@H]1O)C(=C)C,-4.44,-3.257,valid
+481,104,"1,2,3,4,6,7,8,9-octachlorodibenzo-p-dioxin",c12c(c(c(c(c1Cl)Cl)Cl)Cl)Oc3c(c(c(c(c3Cl)Cl)Cl)Cl)O2,-4.53,-1.147,training
+482,447,isopentyl acetate,CC(C)CCOC(=O)C,-2.21,-3.067,training
+483,144,"2,4-dimethylpentane",CC(C)CC(C)C,2.83,2.756,test
+484,392,propyl propanoate,CCCOC(=O)CC,-2.44,-2.453,training
+485,120,simazine,CCNc1nc(nc(n1)Cl)NCC,-10.22,-10.914,training
+486,566,1-acetoxyethyl acetate,CC(OC(=O)C)OC(=O)C,-4.97,-8.006,training
+487,100,endosulfan alpha,C1[C@@H]2[C@H](COS(=O)O1)[C@@]3(C(=C([C@]2(C3(Cl)Cl)Cl)Cl)Cl)Cl,-4.23,-9.785,training
+488,461,methanesulfonyl chloride,CS(=O)(=O)Cl,-4.87,-6.219,valid
+489,382,2-iodopropane,CC(C)I,-0.46,-0.492,training
+490,369,hexylbenzene,CCCCCCc1ccccc1,-0.04,-0.1,valid
+491,95,toluene,Cc1ccccc1,-0.9,-0.79,training
+492,559,propyl acetate,CCCOC(=O)C,-2.79,-3.486,training
+493,77,pyridine-3-carbaldehyde,c1cc(cnc1)C=O,-7.1,-7.425,valid
+494,355,diflunisal,c1cc(c(cc1c2ccc(cc2F)F)C(=O)O)O,-9.4,-6.613,training
+495,354,[(2S)-butan-2-yl] nitrate,CC[C@H](C)O[N+](=O)[O-],-1.82,-1.864,training
+496,102,"1,2-dinitroxyethane",C(CO[N+](=O)[O-])O[N+](=O)[O-],-5.73,-6.227,training
+497,357,methylcyclohexane,CC1CCCCC1,1.7,1.679,test
+498,280,bromacil,CC[C@H](C)n1c(=O)c(c([nH]c1=O)C)Br,-9.73,-14.496,training
+499,350,3-hydroxybenzaldehyde,c1cc(cc(c1)O)C=O,-9.52,-9.369,training
+500,428,alachlor,CCc1cccc(c1N(COC)C(=O)CCl)CC,-8.21,-6.851,training
+501,386,propylcyclopentane,CCCC1CCCC1,2.13,2.102,training
+502,8,heptan-4-one,CCCC(=O)CCC,-2.92,-2.704,training
+503,538,cyclohexane,C1CCCCC1,1.23,1.503,training
+504,185,bromomethane,CBr,-0.82,0.46,training
+505,188,1-ethyl-4-methyl-benzene,CCc1ccc(cc1)C,-0.95,-0.575,training
+506,211,3-hydroxybenzonitrile,c1cc(cc(c1)O)C#N,-9.65,-7.739,training
+507,609,phthalimide,c1ccc2c(c1)C(=O)NC2=O,-9.61,-11.825,training
+508,200,tetrahydrofuran,C1CCOC1,-3.47,-2.201,training
+509,464,acenaphthene,c1cc2cccc3c2c(c1)CC3,-3.15,-4.198,training
+510,421,chlorpyrifos,CCOP(=S)(OCC)Oc1c(cc(c(n1)Cl)Cl)Cl,-5.04,-9.625,training
+511,285,pent-1-yne,CCCC#C,0.01,0.47,training
+512,180,chloroethane,CCCl,-0.63,0.775,training
+513,141,heptachlor,C1=C[C@@H]([C@@H]2[C@H]1[C@@]3(C(=C([C@]2(C3(Cl)Cl)Cl)Cl)Cl)Cl)Cl,-2.55,-0.974,test
+514,497,methyldisulfanylmethane,CSSC,-1.83,-0.093,test
+515,25,[2-benzhydryloxyethyl]-dimethyl-amine,CN(C)CCOC(c1ccccc1)c2ccccc2,-9.34,-7.873,test
+516,399,"1,1,1-trichloroethane",CC(Cl)(Cl)Cl,-0.19,0.505,training
+517,549,tetrahydropyran,C1CCOCC1,-3.12,-1.809,valid
+518,284,dibromomethane,C(Br)Br,-1.96,-0.405,training
+519,216,2-methylthiophene,Cc1cccs1,-1.38,-0.3,training
+520,593,bromo-trifluoro-methane,C(F)(F)(F)Br,1.79,1.564,training
+521,74,2-methylprop-1-ene,CC(=C)C,1.16,2.327,training
+522,96,2-propoxyethanol,CCCOCCO,-6.4,-3.94,valid
+523,10,5-Amino-4-chloro-2-phenylpyridazin-3(2H)-one,c1ccc(cc1)n2c(=O)c(c(cn2)N)Cl,-16.43,-16.039,valid
+524,45,"1-amino-9,10-anthracenedione",c1ccc2c(c1)C(=O)c3cccc(c3C2=O)N,-9.44,-12.214,training
+525,2,3-ethylpyridine,CCc1cccnc1,-4.59,-2.965,training
+526,13,1-nitropentane,CCCCC[N+](=O)[O-],-2.82,-1.325,training
+527,482,methyl 4-methoxybenzoate,COc1ccc(cc1)C(=O)OC,-5.33,-6.462,training
+528,324,3-methylbut-1-ene,CC(C)C=C,1.83,2.452,training
+529,15,dichloromethane,C(Cl)Cl,-1.31,0.038,test
+530,187,terbutryn,CCNc1nc(nc(n1)SC)NC(C)(C)C,-6.68,-9.271,training
+531,30,"1,1-dichloroethylene",C=C(Cl)Cl,0.25,1.108,training
+532,4,aniline,c1ccc(cc1)N,-5.49,-5.543,training
+533,35,1-bromohexane,CCCCCCBr,0.18,1.076,training
+534,489,"methyl 2,2,2-trifluoroacetate",COC(=O)C(F)(F)F,-1.1,-1.353,valid
+535,517,ammonia,N,-4.29,-4.018,training
+536,219,dichlobenil,c1cc(c(c(c1)Cl)C#N)Cl,-4.71,-3.32,training
+537,630,"2,6-dimethoxyphenol",COc1cccc(c1O)OC,-6.96,-7.393,training
+538,404,phenanthrene,c1ccc2c(c1)ccc3c2cccc3,-3.88,-5.264,training
+539,152,1-methyl-3-nitro-benzene,Cc1cccc(c1)[N+](=O)[O-],-3.45,-3.278,valid
+540,303,5-iodouracil,c1c(c(=O)[nH]c(=O)[nH]1)I,-18.72,-17.742,training
+541,477,p-cresol,Cc1ccc(cc1)O,-6.13,-5.579,training
+542,361,hexyl nitrate,CCCCCCO[N+](=O)[O-],-1.66,-1.596,training
+543,578,phenylmethanol,c1ccc(cc1)CO,-6.62,-5.133,training
+544,486,2-methylbutan-2-ol,CCC(C)(C)O,-4.43,-2.933,training
+545,590,dibenzo-p-dioxin,c1ccc2c(c1)Oc3ccccc3O2,-3.15,-4.9,training
+546,636,"1,4-diamino-9,10-anthracenedione",c1ccc2c(c1)C(=O)c3c(ccc(c3C2=O)N)N,-11.85,-15.252,valid
+547,494,thiophene,c1ccsc1,-1.4,-0.359,training
+548,481,"2,4-dimethylpyridine",Cc1ccnc(c1)C,-4.86,-3.282,training
+549,329,2-nitroaniline,c1ccc(c(c1)N)[N+](=O)[O-],-7.37,-7.66,training
+550,56,4-methylpentan-2-ol,C[C@H](CC(C)C)O,-3.73,-2.907,training
+551,508,endrin,C1[C@@H]2[C@H]3[C@@H]([C@H]1[C@H]4[C@@H]2O4)[C@@]5(C(=C([C@]3(C5(Cl)Cl)Cl)Cl)Cl)Cl,-4.82,-5.179,test
+552,269,"1,2,3,4,7-pentachlorodibenzo-p-dioxin",c1cc2c(cc1Cl)Oc3c(c(c(c(c3Cl)Cl)Cl)Cl)O2,-4.15,-2.31,valid
+553,542,1-propylsulfanylpropane,CCCSCCC,-1.28,0.64,test
+554,198,1-nitroethane,CC[N+](=O)[O-],-3.71,-1.839,valid
+555,43,propane,CCC,2.0,2.495,test
+556,27,acetylsalicylic acid,CC(=O)Oc1ccccc1C(=O)O,-9.94,-9.399,training
+557,362,"1,2,4-trichlorobenzene",c1cc(c(cc1Cl)Cl)Cl,-1.12,-0.117,training
+558,11,2-chloropyridine,c1ccnc(c1)Cl,-4.39,-3.873,training
+559,377,ethyl hexanoate,CCCCCC(=O)OCC,-2.23,-2.929,training
+560,614,methanamine,CN,-4.55,-3.583,training
+561,599,4-chlorophenol,c1cc(ccc1O)Cl,-7.03,-5.373,valid
+562,454,"2,5-dimethylpyridine",Cc1ccc(nc1)C,-4.72,-3.165,test
+563,437,pyridine-3-carbonitrile,c1cc(cnc1)C#N,-6.75,-5.582,training
+564,564,"1,2-dichlorobenzene",c1ccc(c(c1)Cl)Cl,-1.36,-0.553,valid
+565,156,2-methylhexane,CCCCC(C)C,2.93,2.894,training
+566,146,nonan-2-one,CCCCCCCC(=O)C,-2.49,-2.563,training
+567,528,butane-1-thiol,CCCCS,-0.99,-0.174,training
+568,70,cyclohexanamine,C1CCC(CC1)N,-4.59,-3.953,training
+569,247,methyl cyclopropanecarboxylate,COC(=O)C1CC1,-4.1,-3.604,training
+570,36,"9,10-dihydroanthracene",c1ccc2c(c1)Cc3ccccc3C2,-3.78,-4.304,training
+571,458,hexachloroethane,C(C(Cl)(Cl)Cl)(Cl)(Cl)Cl,-0.64,0.885,training
+572,12,"1,3-dichloropropane",C(CCl)CCl,-1.89,-0.416,training
+573,633,butyl acetate,CCCCOC(=O)C,-2.64,-3.406,training
+574,529,"1,1,2-trichloro-1,2,2-trifluoro-ethane",C(C(F)(Cl)Cl)(F)(F)Cl,1.77,1.691,training
+575,583,"N,N-dimethyl-4-nitro-benzamide",CN(C)C(=O)c1ccc(cc1)[N+](=O)[O-],-11.95,-10.036,test
+576,229,azetidine,C1CNC1,-5.56,-3.861,training
+577,457,pentylcyclopentane,CCCCCC1CCCC1,2.55,2.381,training
+578,628,prop-2-en-1-ol,C=CCO,-5.03,-3.286,training
+579,613,N-methylacetamide,CC(=O)NC,-10.0,-8.276,test
+580,5,2-methylaniline,Cc1ccccc1N,-5.53,-5.325,training
+581,500,octan-1-amine,CCCCCCCCN,-3.65,-2.589,training
+582,182,but-1-yne,CCC#C,-0.16,0.284,training
+583,301,1-chloroheptane,CCCCCCCCl,0.29,1.467,training
+584,460,"N,N-dimethylformamide",CN(C)C=O,-7.81,-6.932,training
+585,434,methyl butanoate,CCCC(=O)OC,-2.83,-3.552,training
+586,225,"N-butyl-N-ethyl-2,6-dinitro-4-(trifluoromethyl)aniline",CCCC[N@](CC)c1c(cc(cc1[N+](=O)[O-])C(F)(F)F)[N+](=O)[O-],-3.51,-2.303,training
+587,331,N-ethylethanamine,CCNCC,-4.07,-2.986,training
+588,191,4-hydroxybenzaldehyde,c1cc(ccc1C=O)O,-8.83,-10.05,training
+589,88,ethyl pentanoate,CCCCC(=O)OCC,-2.49,-3.11,training
+590,623,iodobenzene,c1ccc(cc1)I,-1.74,-1.057,training
+591,432,prop-1-ene,CC=C,1.32,2.328,training
+592,473,"1,2-diethoxyethane",CCOCCOCC,-3.54,-3.42,training
+593,83,pentan-3-one,CCC(=O)CC,-3.41,-3.05,training
+594,106,2-methylbutan-1-ol,CC[C@@H](C)CO,-4.42,-2.995,training
+595,507,"1,2,3-trichlorobenzene",c1cc(c(c(c1)Cl)Cl)Cl,-1.24,-0.51,training
+596,557,isobutyl acetate,CC(C)COC(=O)C,-2.36,-2.896,training
+597,367,1-nitrobutane,CCCC[N+](=O)[O-],-3.09,-1.449,test
+598,595,cycloheptanol,C1CCCC(CC1)O,-5.48,-4.345,training
+599,629,1-iodopropane,CCCI,-0.53,-0.443,training
+600,589,3-phenylpropan-1-ol,c1ccc(cc1)CCCO,-6.92,-5.771,valid
+601,313,pentachloronitrobenzene,c1(c(c(c(c(c1Cl)Cl)Cl)Cl)Cl)N(=O)=O,-5.22,-1.284,test
+602,514,pent-1-ene,CCCC=C,1.68,2.532,valid
+603,136,naphthalen-1-amine,c1ccc2c(c1)cccc2N,-7.28,-7.777,training
+604,230,methylsulfinylmethane,CS(=O)C,-9.28,-8.243,training
+605,307,isobutyl formate,CC(C)COC=O,-2.22,-3.458,training
+606,140,"(2E)-3,7-dimethylocta-2,6-dien-1-ol",CC(=CCC/C(=C/CO)/C)C,-4.45,-2.518,valid
+607,222,4-chlorophenyl)sulfanylmethylsulfanyl-diethoxy-thioxo-$l^{5}-phosphane,CCOP(=S)(OCC)SCSc1ccc(cc1)Cl,-6.5,-7.024,training
+608,619,"1,1,2-trichloroethane",C(C(Cl)Cl)Cl,-1.99,-0.384,training
+609,487,"N,N-dimethylbenzamide",CN(C)C(=O)c1ccccc1,-9.29,-8.113,training
+610,78,N-isopropylpropan-2-amine,CC(C)NC(C)C,-3.22,-1.985,training
+611,239,nitroxyacetone,CC(=O)CO[N+](=O)[O-],-5.99,-5.362,training
+612,618,cyclopropane,C1CC1,0.75,2.485,valid
+613,164,"1,3-dimethylnaphthalene",Cc1cc(c2ccccc2c1)C,-2.47,-2.995,training
+614,540,1-chlorobutane,CCCCCl,-0.16,0.993,valid
+615,295,isoprene,CC(=C)C=C,0.68,1.824,training
+616,306,isopentane,CCC(C)C,2.38,2.59,training
+617,150,"1,1,1-trifluoropropan-2-ol",C[C@@H](C(F)(F)F)O,-4.16,-3.518,training
+618,3,dimethoxymethane,COCOC,-2.93,-3.221,training
+619,197,propionamide,CCC(=O)N,-9.4,-8.31,training
+620,372,1-cyclopropylethanone,CC(=O)C1CC1,-4.61,-3.043,training
+621,137,pentan-3-ol,CCC(CC)O,-4.35,-2.786,training
+622,245,heptane,CCCCCCC,2.67,2.925,training
+623,155,hept-1-ene,CCCCCC=C,1.66,2.761,test
+624,603,n-pentane,CCCCC,2.3,2.673,valid
+625,206,3-methylhexane,CCC[C@H](C)CC,2.71,2.81,training
+626,567,3-methylbutan-2-one,CC(C)C(=O)C,-3.24,-3.078,training
+627,349,ethion,CCOP(=S)(OCC)SCSP(=S)(OCC)OCC,-6.1,-10.644,training
+628,33,methylsulfanylethane,CCSC,-1.5,0.386,training
+629,143,oct-1-yne,CCCCCCC#C,0.71,0.832,training
+630,615,methyl paraben,COC(=O)c1ccc(cc1)O,-9.51,-9.785,training
+631,436,m-cresol,Cc1cccc(c1)O,-5.49,-5.378,training
+632,383,"N,N-dipropyl(propylsulfanyl)formamide",CCCN(CCC)C(=O)SCCC,-4.13,-4.569,training
+633,46,1-ethyl-2-methylbenzene,CCc1ccccc1C,-0.85,-0.761,training
+634,551,methane,C,2.0,2.446,training
+635,205,4-(1-Methylethenyl)-1-cyclohexene-1-carboxaldehyde,CC(=C)[C@H]1CCC(=CC1)C=O,-4.09,-3.591,training
+636,279,"1,1,1-trifluoro-2,2,2-trimethoxyethane",COC(C(F)(F)F)(OC)OC,-0.8,-2.319,test
+637,621,"N,N-4-trimethylbenzamide",Cc1ccc(cc1)C(=O)N(C)C,-9.76,-8.081,training
+638,233,"1,2-dinitroxypropane",C[C@@H](CO[N+](=O)[O-])O[N+](=O)[O-],-4.95,-5.646,training
+639,132,pebulate,CCCCN(CC)C(=O)SCCC,-3.64,-4.573,training
+640,359,dimethyl sulfate,COS(=O)(=O)OC,-5.1,-8.411,training
+641,571,cumene,CC(C)c1ccccc1,-0.3,-0.674,training
