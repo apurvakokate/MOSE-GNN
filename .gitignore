@@ -2,3 +2,5 @@ DomainDrivenGlobalExpl/EXPT*
 DomainDrivenGlobalExpl/archive_results
 DomainDrivenGlobalExpl/prev_Scripts
 DICTIONARY
+DomainDrivenGlobalExpl/datasets/_DATASET.PKL
+DomainDrivenGlobalExpl/utils_combine_plots_all_seeds.ipynb
