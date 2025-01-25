@@ -20,7 +20,7 @@ def get_setup_files_with_folds(dataset_name, date_tag, fold, algorithm):
     # print(algorithm)
     least_count = least_count_dict[dataset_name][algorithm]
     
-    path = "../DICTIONARY"
+    path = "/nfs/stak/users/kokatea/hpc-share/ChemIntuit/MOSE-GNN/DICTIONARY"
     
     with open(f'{path}/FOLDS/{dataset_name}_{algorithm}_fold_{fold}_leastcount_{least_count}_{date_tag}_graph_lookup.pickle', 'rb') as file:
         lookup = pickle.load(file)
@@ -266,6 +266,7 @@ class MolDataset(Dataset):
         else:
                label = torch.tensor([self.df.loc[idx, col] for col in self.label_col], dtype=torch.float)
         if self.normalize:
+            #Only for regression
             label = (label - torch.tensor(self.mean, dtype=torch.float)) / torch.tensor(self.std, dtype=torch.float)
         data = create_pytorch_geometric_graph_data_list_from_smiles_and_labels(smiles, label)
         # Check if data is None

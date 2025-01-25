@@ -278,7 +278,7 @@ def save_csv_motif_importance(model, epoch, image_dir, motif_list, image_files, 
                     sigmoid_importance_class_0,
                     original_prediction.item(),
                     new_prediction.item(),
-                    int(data.y.item())  # Assuming `data.y` contains the class label
+                    data.y.item()  # Assuming `data.y` contains the class label
                 ])
         
     # Write data to the CSV file
@@ -292,6 +292,80 @@ def save_csv_motif_importance(model, epoch, image_dir, motif_list, image_files, 
             "sigmoid_importance_for_class_0", 
             "original_logit_class_0", 
             "new_logit_class_0", 
+            "class_label"
+        ])
+        writer.writerows(csv_data)
+
+        
+def save_csv_motif_importance_multiclass(model, epoch, image_dir, motif_list, image_files, masked_data, csv_file_path):
+    # Get the device from the model
+    model_device = next(model.parameters()).device
+    num_classes = model.motif_params.shape[1]  # Determine the number of classes dynamically
+    motif_weights = model.motif_params.detach().cpu()
+    csv_data = []  # Collect data for the CSV file
+
+    for motif_idx, motif_id in enumerate(motif_list):
+        print(f"Processing motif {motif_idx}")
+        logit_diff = None
+        total_graphs = 0  # To track the total number of graphs across datasets
+
+        # Process each dataset in masked_data
+        for dataset_idx, dataset in enumerate(masked_data):
+            for graph_idx in dataset[0][motif_idx]:
+                data = dataset[1][graph_idx].to(model_device)
+
+                valid_mask = ~torch.isnan(data.y)
+                
+                # Skip graphs with all NaN labels
+                if not valid_mask.any():
+                    continue
+
+                total_graphs += 1  # Count graphs with valid labels
+
+                # Original and perturbed predictions
+                original_prediction, _ = model(data.x, data.edge_index, None, data.smiles)
+                new_prediction, _ = model(
+                    dataset[0][motif_idx][graph_idx].to(model_device),
+                    data.edge_index,
+                    None,
+                    data.smiles
+                )
+                if logit_diff is None:
+                    logit_diff = torch.zeros_like(original_prediction, device=model_device)
+                
+
+                # Accumulate logit differences for all classes
+                logit_diff += (original_prediction - new_prediction) * valid_mask.float()
+
+                # Collect data for each class
+                for class_idx in range(num_classes):
+                    if valid_mask[:,class_idx].item():  # Check if the label for this class is valid
+                        importance_class = motif_weights[motif_idx, class_idx].item()
+                        sigmoid_importance_class = torch.sigmoid(motif_weights[motif_idx, class_idx]).item()
+                        csv_data.append([
+                            motif_idx,
+                            motif_id,
+                            graph_idx,
+                            class_idx,
+                            importance_class,
+                            sigmoid_importance_class,
+                            original_prediction[:,class_idx].item(),
+                            new_prediction[:,class_idx].item(),
+                            int(data.y[:,class_idx].item())
+                        ])
+
+    # Write data to the CSV file
+    with open(csv_file_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([
+            "motif_id",
+            "motif",
+            "graph_id",
+            "class_id",
+            "importance",
+            "sigmoid_importance",
+            "original_logit",
+            "new_logit",
             "class_label"
         ])
         writer.writerows(csv_data)

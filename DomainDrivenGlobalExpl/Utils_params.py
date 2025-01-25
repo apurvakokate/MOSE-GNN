@@ -278,7 +278,7 @@ def save_csv_motif_importance(model, epoch, image_dir, motif_list, image_files, 
                     sigmoid_importance_class_0,
                     original_prediction.item(),
                     new_prediction.item(),
-                    int(data.y.item())  # Assuming `data.y` contains the class label
+                    data.y.item()  # Assuming `data.y` contains the class label
                 ])
         
     # Write data to the CSV file
@@ -306,7 +306,7 @@ def save_csv_motif_importance_multiclass(model, epoch, image_dir, motif_list, im
 
     for motif_idx, motif_id in enumerate(motif_list):
         print(f"Processing motif {motif_idx}")
-        logit_diff = torch.zeros(num_classes, device=model_device)
+        logit_diff = None
         total_graphs = 0  # To track the total number of graphs across datasets
 
         # Process each dataset in masked_data
@@ -330,13 +330,16 @@ def save_csv_motif_importance_multiclass(model, epoch, image_dir, motif_list, im
                     None,
                     data.smiles
                 )
+                if logit_diff is None:
+                    logit_diff = torch.zeros_like(original_prediction, device=model_device)
+                
 
                 # Accumulate logit differences for all classes
                 logit_diff += (original_prediction - new_prediction) * valid_mask.float()
 
                 # Collect data for each class
                 for class_idx in range(num_classes):
-                    if valid_mask[class_idx].item():  # Check if the label for this class is valid
+                    if valid_mask[:,class_idx].item():  # Check if the label for this class is valid
                         importance_class = motif_weights[motif_idx, class_idx].item()
                         sigmoid_importance_class = torch.sigmoid(motif_weights[motif_idx, class_idx]).item()
                         csv_data.append([
@@ -346,9 +349,9 @@ def save_csv_motif_importance_multiclass(model, epoch, image_dir, motif_list, im
                             class_idx,
                             importance_class,
                             sigmoid_importance_class,
-                            original_prediction[class_idx].item(),
-                            new_prediction[class_idx].item(),
-                            int(data.y[class_idx].item()) if data.y.ndim > 1 else int(data.y.item())
+                            original_prediction[:,class_idx].item(),
+                            new_prediction[:,class_idx].item(),
+                            int(data.y[:,class_idx].item())
                         ])
 
     # Write data to the CSV file

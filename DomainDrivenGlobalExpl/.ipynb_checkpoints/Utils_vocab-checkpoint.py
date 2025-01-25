@@ -378,24 +378,24 @@ def brics_decomp(mol, molecule_smiles):
 
  
 
-def handle_fragment(fragment, molecule_smiles, data, lookup, is_test=False, recursive = True):
-    """Handle a fragment by checking if it can be further broken down or adding it to the lookup."""
-    if recursive:
-        fbonds = list(BRICS.FindBRICSBonds(fragment)) # FindrBRICSBonds
-    else:
-        fbonds = list(FindrBRICSBonds(fragment)) # FindrBRICSBonds
+# def handle_fragment(fragment, molecule_smiles, data, lookup, is_test=False, recursive = True):
+#     """Handle a fragment by checking if it can be further broken down or adding it to the lookup."""
+#     if recursive:
+#         fbonds = list(BRICS.FindBRICSBonds(fragment)) # FindrBRICSBonds
+#     else:
+#         fbonds = list(FindrBRICSBonds(fragment)) # FindrBRICSBonds
     
-    if len(fbonds) == 0:
-        atom_nums = [atom.GetAtomMapNum() if atom.GetAtomicNum() != 0 else None for atom in fragment.GetAtoms()]
-        [a.SetAtomMapNum(0) for a in fragment.GetAtoms()]  # Remove atom map for unique motif
-        fragment_smiles = Chem.MolToSmiles(fragment, isomericSmiles=False, canonical=True)
-        if is_test:
-            lookup.add_entry_test(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
-        else:
-            lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
-    else:
-        fragment_smiles = Chem.MolToSmiles(fragment)
-        return fragment_smiles
+#     if len(fbonds) == 0:
+#         atom_nums = [atom.GetAtomMapNum() if atom.GetAtomicNum() != 0 else None for atom in fragment.GetAtoms()]
+#         [a.SetAtomMapNum(0) for a in fragment.GetAtoms()]  # Remove atom map for unique motif
+#         fragment_smiles = Chem.MolToSmiles(fragment, isomericSmiles=False, canonical=True)
+#         if is_test:
+#             lookup.add_entry_test(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
+#         else:
+#             lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
+#     else:
+#         fragment_smiles = Chem.MolToSmiles(fragment)
+#         return fragment_smiles
     
 def add_fragment(fragment, molecule_smiles, data, lookup, is_test=False):
     """Handle a fragment by checking if it can be further broken down or adding it to the lookup."""
@@ -407,14 +407,15 @@ def add_fragment(fragment, molecule_smiles, data, lookup, is_test=False):
     #     lookup.add_entry_test(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
     # else:
     #     lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
+    data_label_count = data.y.squeeze().shape[0]
         
     if is_test:
-        if data.y.shape[0] == 1:
+        if data_label_count == 1:
             lookup.add_entry_test(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
         else:
             lookup.add_entry_test(molecule_smiles, fragment_smiles, atom_nums, data.y.tolist())
     else:
-        if data.y.shape[0] == 1:
+        if data_label_count == 1:
             lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
         else:
             lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.tolist())
@@ -468,13 +469,14 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
             for i,c in enumerate(cliques):
                 cmol = get_clique_mol(mol_mgssl, c)
                 fragment_smiles = get_smiles(cmol)
+                data_label_count = data.y.squeeze().shape[0]
                 if is_test:
-                    if data.y.shape[0] == 1:
+                    if data_label_count == 1:
                         lookup.add_entry_test(molecule_smiles, fragment_smiles, c, data.y.item())
                     else:
                         lookup.add_entry_test(molecule_smiles, fragment_smiles, c, data.y.tolist())
                 else:
-                    if data.y.shape[0] == 1:
+                    if data_label_count == 1:
                         lookup.add_entry(molecule_smiles, fragment_smiles, c, data.y.item())
                     else:
                         lookup.add_entry(molecule_smiles, fragment_smiles, c, data.y.tolist())
