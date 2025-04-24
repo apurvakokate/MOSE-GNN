@@ -10,7 +10,7 @@ conda activate l2xgnn
 
 for SEED in 0
 do
-    for FOLD in 3 4
+    for FOLD in 0 1
     do
         for ALGORITHM in None
         do

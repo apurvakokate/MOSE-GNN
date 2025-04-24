@@ -16,6 +16,39 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import pdb
 import pandas as pd
 
+def compute_pos_weights(dataset):
+    """Calculate pos_weight for each task based on valid (non-NaN) samples."""
+    pos_weights = []
+    
+    for task_idx in range(dataset.num_classes):
+        
+        labels = torch.tensor(dataset.y[:, task_idx], dtype=torch.float)
+        
+        pos_weight = compute_pos_weights_one_task(labels)
+        
+        pos_weights.append(pos_weight)
+    
+    return torch.tensor(pos_weights, dtype=torch.float32)
+
+def compute_pos_weights_one_task(labels):
+    # Extract valid labels for this task
+    valid_mask = ~torch.isnan(labels)
+    valid_labels = labels[valid_mask]
+
+    # Count positive and negative samples
+    num_pos = valid_labels.sum().item()
+    num_neg = len(valid_labels) - num_pos
+
+    # Handle edge cases (no positives or negatives)
+    if num_pos == 0:
+        pos_weight = 0.0  # No positive samples to weight
+    elif num_neg == 0:
+        pos_weight = 1.0  # No negative samples (trivial balance)
+    else:
+        pos_weight = num_neg / num_pos
+        
+    return pos_weight
+
 def remove_bad_mols(dataset):
     indices_to_remove = np.ones(len(dataset), dtype=bool)
     for i,data in enumerate(dataset):
@@ -44,7 +77,7 @@ def mae(model, loader, device):
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            output, _= model(data.x, data.edge_index, data.batch, data.smiles)
+            output, _= model(data.x, data.edge_index, data.batch, data.nodes_to_motifs)
             # pred_probs = probs[:, 1] if probs.shape[1] > 1 else probs[:, 0]
             all_preds.append(output.cpu())
             all_labels.append(data.y.cpu())
@@ -62,7 +95,7 @@ def rmse(model, loader, device):
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            output, _= model(data.x, data.edge_index, data.batch, data.smiles)
+            output, _= model(data.x, data.edge_index, data.batch, data.nodes_to_motifs)
             # probs = torch.exp(output)  # Convert log-softmax output to probabilities
             # pred_probs = probs[:, 1] if probs.shape[1] > 1 else probs[:, 0]
             # all_preds.append(probs.cpu())
@@ -84,77 +117,70 @@ def evaluate_model(model, loader, device, num_classes):
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            output, _= model(data.x, data.edge_index, data.batch, data.smiles)
-            # probs = torch.exp(output)  # Convert log-softmax output to probabilities
-            # if num_classes == 2 :
-            #     pred_probs = probs[:, 1] if probs.shape[1] > 1 else probs[:, 0]
-            #     all_pred_probs.append(pred_probs.cpu())
-            # all_preds.append(probs.cpu())
+            output, _= model(data.x, data.edge_index, data.batch, data.nodes_to_motifs)
             all_preds.append(output.cpu())
             all_labels.append(data.y.cpu())
 
     all_preds = torch.cat(all_preds)
     all_labels = torch.cat(all_labels)
-    
-    if num_classes > 2:
-        if model.task_type == 'MultiTask':
-            # Step 1: Identify valid indices (exclude NaN and infinity values)
-            valid_mask = ~np.isnan(all_labels) & ~np.isnan(all_preds) & np.isfinite(all_preds)
-            valid_mask = valid_mask.to(torch.bool)
+    if model.task_type == 'MultiTask':
+        # Step 1: Identify valid indices (exclude NaN and infinity values)
+        valid_mask = ~np.isnan(all_labels) & ~np.isnan(all_preds) & np.isfinite(all_preds)
+        valid_mask = valid_mask.to(torch.bool)
 
-            # Step 2: Filter invalid entries
-            filtered_labels = all_labels[valid_mask]
-            filtered_preds = all_preds[valid_mask]
+        # Step 2: Filter invalid entries
+        filtered_labels = all_labels[valid_mask]
+        filtered_preds = all_preds[valid_mask]
 
-            roc_auc = roc_auc_score(filtered_labels, filtered_preds)
-        else:
-            pdb.set_trace()
-            roc_auc = roc_auc_score(all_labels, all_preds, multi_class="ovr")
+        roc_auc = roc_auc_score(filtered_labels, filtered_preds)
+    elif model.task_type == 'MultiClass':
+        input("Support pending")
+        roc_auc = roc_auc_score(all_labels, all_preds, multi_class="ovr")
     else:
         roc_auc = roc_auc_score(all_labels, all_preds)
     return roc_auc
 
-def evaluate_model_prediction(model, loader, device, original_prediction_y =None):
-    '''
-    Return Class probability of predicted class
-    '''
-    model.eval()
-    preds_out = []
-    preds_y = []
+# def evaluate_model_prediction(model, loader, device, original_prediction_y =None):
+#     '''
+#     Return Class probability of predicted class
+#     '''
+#     model.eval()
+#     preds_out = []
+#     preds_y = []
     
-    with torch.no_grad():
-        for i,data in enumerate(loader):
-            data = data.to(device)
-            output, _ = model(data.x, data.edge_index, data.batch, data.smiles)
-            predicted_class = torch.argmax(output.data, dim = 1)  # Get the index of the max log-probability
-            if original_prediction_y is not None:
-                output_at_predicted_class = output[range(len(predicted_class)), original_prediction_y[i]]
-            else:
-                output_at_predicted_class = output[range(len(predicted_class)), predicted_class]
-                preds_y.append(predicted_class)
+#     with torch.no_grad():
+#         for i,data in enumerate(loader):
+#             data = data.to(device)
+#             output, _ = model(data.x, data.edge_index, data.batch, data.smiles)
+#             predicted_class = torch.argmax(output.data, dim = 1)  # Get the index of the max log-probability
+#             if original_prediction_y is not None:
+#                 output_at_predicted_class = output[range(len(predicted_class)), original_prediction_y[i]]
+#             else:
+#                 output_at_predicted_class = output[range(len(predicted_class)), predicted_class]
+#                 preds_y.append(predicted_class)
             
-            preds_out.extend(output_at_predicted_class)
-    return preds_out,preds_y
+#             preds_out.extend(output_at_predicted_class)
+#     return preds_out,preds_y
 
 
-def get_model_prediction(model, loader, device):
-    '''
-    Return Class probability of predicted class
-    '''
-    model.eval()
-    preds_out = []
-    labels = []
+# def get_model_prediction(model, loader, device):
+#     '''
+#     Return Class probability of predicted class
+#     '''
+#     model.eval()
+#     preds_out = []
+#     labels = []
     
-    with torch.no_grad():
-        for i,data in enumerate(loader):
-            data = data.to(device)
-            output, _ = model(data.x, data.edge_index, data.batch, data.smiles)
-            labels.extend(data.y)
-            preds_out.extend(output)
-    return preds_out, labels
+#     with torch.no_grad():
+#         for i,data in enumerate(loader):
+#             data = data.to(device)
+#             output, _ = model(data.x, data.edge_index, data.batch, data.smiles)
+#             labels.extend(data.y)
+#             preds_out.extend(output)
+#     return preds_out, labels
 
 
-def get_masked_graphs(loader, motif_idx, model, lookup_dict):
+def get_masked_graphs(loader, motif_idx, lookup_dict):
     '''
     Checks the meaningfulness of each motif importance.
     '''
@@ -189,7 +215,7 @@ def get_masked_graphs(loader, motif_idx, model, lookup_dict):
 
     return new_loader
 
-def get_masked_graphs_from_list(data_list, motif_idx, model, lookup_dict):
+def get_masked_graphs_from_list(data_list, motif_idx, lookup_dict):
     '''
     Checks the meaningfulness of each motif importance.
     '''
@@ -245,12 +271,14 @@ def get_masked_graphs_from_list_for_each_motif(data_list, lookup_dict, motif_len
             node_to_motif = lookup_dict[smile]
             
             # Group nodes by motifs
-            motif_groups = {}
+            motif_groups = {-1:[]}
             for node_idx, (motif_name, motif_index) in node_to_motif.items():
                 if motif_name in motif_lengths:
                     if motif_index not in motif_groups:
                         motif_groups[motif_index] = []
                     motif_groups[motif_index].append(node_idx)
+                else:
+                    motif_groups[-1].append(node_idx)
             
             # Sort indices for each motif group and handle cycles
             for motif_index, group_indices in motif_groups.items():
@@ -262,10 +290,12 @@ def get_masked_graphs_from_list_for_each_motif(data_list, lookup_dict, motif_len
                 # Apply masking for this group
                 group_mask = mask.clone()
                 group_indices_tensor = torch.tensor(group_indices, device=device)
-                group_mask[group_indices_tensor] = 0.0  # Mask out this motif
-                
-                # Store the masked data in the collect_data dictionary
-                collect_data[motif_index][data_i] = data.x * group_mask.unsqueeze(1)
+                if len(group_indices_tensor) > 0:
+
+                    group_mask[group_indices_tensor] = 0.0  # Mask out this motif
+
+                    # Store the masked data in the collect_data dictionary
+                    collect_data[motif_index][data_i] = data.x * group_mask.unsqueeze(1)
 
     return collect_data
 
@@ -426,7 +456,7 @@ def save_training_artifacts(image_files, dataset_name, output_dir):
     images = [Image.open(image) for image in image_files]
     images[0].save(f'{output_dir}/{dataset_name}.gif', save_all=True, append_images=images[1:], duration=500, loop=0)
 
-def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_loader, val_loader, device, config, output_dir, plot=False, motif_list=None, dataset_name='dataset', patience=10, delta=1e-4, ignore_unknowns = False, predictions = None, model_dir = None, train_mask_data = None, val_mask_data = None, test_mask_data = None):
+def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_loader, val_loader, device, config, output_dir, plot=False, motif_list=None, dataset_name='dataset', patience=10, delta=1e-4, ignore_unknowns = False, predictions = None, model_dir = None, train_mask_data = None, val_mask_data = None, test_mask_data = None, class_weights = None):
     train_losses, val_losses = [], []
     train_accs, val_accs = [], []
     image_files = []
@@ -481,7 +511,8 @@ def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_load
                                                       train_loader, 
                                                       device, 
                                                       config, 
-                                                      ignore_unknowns= ignore_unknowns)
+                                                      ignore_unknowns= ignore_unknowns,
+                                                     class_weights = class_weights)
         # pdb.set_trace()
         train_losses.append(train_loss)
         val_loss, train_acc, val_acc, fidelity = validate_model(model, criterion, val_loader, device, train_loader, predictions)
@@ -538,52 +569,7 @@ def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_load
 
     return train_losses, val_losses, train_accs, val_accs
 
-# def train_and_evaluate_model_noise(model, criterion, optimizer, num_epochs, train_loader, val_loader, device, config, output_dir, plot=False, motif_list=None, dataset_name='dataset', patience=10, delta=1e-4):
-#     train_losses, val_losses = [], []
-#     train_accs, val_accs = [], []
-#     image_files = []
-
-#     image_dir = f'./{output_dir}/epoch_artifacts_{dataset_name}/'
-#     os.makedirs(image_dir, exist_ok=True)
-
-#     model = model.to(device)
-
-#     best_val_loss = float('inf')
-#     epochs_without_improvement = 0
-#     noise_factors = torch.linspace(0.5, 0, 30)
-
-#     for epoch in range(num_epochs):
-#         model.train()
-#         if epoch <30:
-#             model.noise = torch.normal(torch.zeros_like(model.motif_params),noise_factors[epoch].to(device))
-#             train_loss, mask_loss = train_one_epoch(model, criterion, optimizer, train_loader, device, config, noise_factors[epoch])
-#         else:
-#             model.noise = torch.zeros_like(model.motif_params).to(device)
-#             train_loss, mask_loss = train_one_epoch(model, criterion, optimizer, train_loader, device, config)
-#         train_losses.append(train_loss)
-
-#         val_loss, train_acc, val_acc = validate_model(model, criterion, val_loader, device, train_loader)
-#         val_losses.append(val_loss)
-#         train_accs.append(train_acc)
-#         val_accs.append(val_acc)
-
-#         print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc, output_dir, dataset_name)
-
-#         if plot and hasattr(model, 'motif_params'):
-#             plot_and_save_distribution(model, epoch, image_dir, motif_list, image_files)
-
-#         # Early stopping logic
-#         if epoch > 30:
-#             flag, best_val_loss, epochs_without_improvement = early_stopping(val_loss, best_val_loss, delta, patience, epochs_without_improvement, model,output_dir, dataset_name)
-#             if flag:
-#                 break
-
-#     if plot and hasattr(model, 'motif_params'):
-#         save_training_artifacts(image_files, dataset_name, output_dir)
-
-#     return train_losses, val_losses, train_accs, val_accs
-
-def train_one_epoch(model, criterion, optimizer, train_loader, device, config, noise_factor = 0.0, ignore_unknowns = False):
+def train_one_epoch(model, criterion, optimizer, train_loader, device, config, noise_factor = 0.0, ignore_unknowns = False, class_weights = None):
     '''
     Main training function
     '''
@@ -595,7 +581,7 @@ def train_one_epoch(model, criterion, optimizer, train_loader, device, config, n
         model = model.to(device)
         optimizer.zero_grad()
 
-        output, mask = model(data.x, data.edge_index, data.batch, data.smiles, ignore_unknowns = ignore_unknowns)
+        output, mask = model(data.x, data.edge_index, data.batch, data.nodes_to_motifs, ignore_unknowns = ignore_unknowns)
         
         is_regression = isinstance(criterion, nn.MSELoss) and model.task_type == 'Regression'
         is_binary_classification = isinstance(criterion, nn.BCEWithLogitsLoss) and model.task_type == 'BinaryClass'
@@ -609,11 +595,20 @@ def train_one_epoch(model, criterion, optimizer, train_loader, device, config, n
             loss = criterion(output.squeeze(), data.y.float())
         elif is_multi_task:
             valid_mask = ~torch.isnan(data.y)
-            data.y[~valid_mask] = 0.0
+            data.y[~valid_mask] = -1.0
             per_element_loss = criterion(output, data.y)
             # pdb.set_trace()
             masked_loss = per_element_loss * valid_mask
-            loss = masked_loss.sum() / valid_mask.sum()
+            
+            # Apply class weighting for imbalance
+            loss = masked_loss * class_weights.to(data.y.device)
+            
+            # Fixed code
+            masked_loss = per_element_loss * valid_mask
+            task_losses = (masked_loss * class_weights.to(data.y.device))  # Weight per task
+            loss = task_losses.sum() / valid_mask.sum()  # Scalar aggregation
+
+            
         else:
             pdb.set_trace()
             '''
@@ -642,11 +637,11 @@ def calculate_mask_loss(mask, config):
     size_loss = torch.sum(mask) * config["size_reg"]
     mask_ent_reg = -mask * torch.log(mask + EPS) - (1 - mask) * torch.log(1 - mask + EPS)
     mask_ent_loss = config["ent_reg"] * torch.mean(mask_ent_reg)
-    if mask.shape[1] != 1:
-        class_disc = config["class_reg"] * torch.sum((mask[:,0] + mask[:,1] - 1)**2)
-        return size_loss + mask_ent_loss + class_disc
-    else:
-        return size_loss + mask_ent_loss
+    # if mask.shape[1] != 1:
+    #     class_disc = config["class_reg"] * torch.sum((mask[:,0] + mask[:,1] - 1)**2)
+    #     return size_loss + mask_ent_loss + class_disc
+    # else:
+    return size_loss + mask_ent_loss
 
 def validate_model(model, criterion, val_loader, device, train_loader, predictions = None):
     '''
@@ -668,7 +663,7 @@ def validate_model(model, criterion, val_loader, device, train_loader, predictio
         for val_data in val_loader:
             val_data = val_data.to(device)
             
-            output, _ = model(val_data.x, val_data.edge_index, val_data.batch, val_data.smiles) 
+            output, _ = model(val_data.x, val_data.edge_index, val_data.batch, val_data.nodes_to_motifs) 
             
 
             if is_regression or is_binary_classification:
@@ -685,12 +680,6 @@ def validate_model(model, criterion, val_loader, device, train_loader, predictio
                 val_loss_epoch = masked_loss.sum() / valid_mask.sum()
                 val_loss += val_loss_epoch.item()
                 
-                
-                
-            # if isinstance(criterion, nn.MSELoss):
-            #     val_loss += criterion(output.squeeze(), val_data.y.float()).item()
-            # elif isinstance(criterion, nn.BCEWithLogitsLoss) and model.task_type == 'BinaryClass':
-            #     val_loss += criterion(output.squeeze(), val_data.y.float()).item()
             else:
                 pdb.set_trace()
                 val_loss += criterion(output, val_data.y.long().flatten()).item()
@@ -713,11 +702,6 @@ def validate_model(model, criterion, val_loader, device, train_loader, predictio
 
     return epoch_val_loss, train_acc, val_acc, fidelity
 
-# def print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc, output_dir, dataset_name):
-#     print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}", end='')
-#     if mask_loss is not None:
-#         print(f", Mask Loss: {mask_loss:.4f}", end='')
-#     print(f", Val Loss: {val_loss:.4f}, Train ROC-AUC: {train_acc:.4f}, Val ROC-AUC: {val_acc:.4f}")
 import os
 import csv
 
@@ -816,27 +800,16 @@ def plot_and_save_distribution(model, epoch, image_dir, motif_list, image_files,
     model_device = next(model.parameters()).device
     motif_weights = model.motif_params.detach().cpu()
     # image_path = os.path.join(image_dir, f'plot_{epoch}.png')
-    motif_colors = {}
+    motif_impact = {}
     
-    # pdb.set_trace()
-#     for motif_idx in train_mask_data[0]:
-#         logit_diff = 0
-#         # 0 is original data 1 is perturbed data and 1 is original data x
-#         for graph_idx in train_mask_data[0][motif_idx]:
-#             data = train_mask_data[1][graph_idx].to(model_device)
-#             original_prediction, _ = model(data.x, data.edge_index, None, data.smiles)
-#             new_prediction, _ = model(train_mask_data[0][motif_idx][graph_idx].to(model_device), data.edge_index, None, data.smiles)
-            
-#             logit_diff += original_prediction - new_prediction
-#         motif_colors[motif_idx] = logit_diff.item()/len(train_mask_data[0][motif_idx])
+    # Process each dataset: train, val, test
+    for dataset in masked_data:
         
-    # Generalize train_mask_data to handle train, val, and test datasets
-    for motif_idx, _ in enumerate(motif_list):
-        logit_diff = torch.tensor([[0.0]], device = model_device)
-        total_graphs = 0  # To track the total number of graphs across train, val, and test
+        # Generalize train_mask_data to handle train, val, and test datasets
+        for motif_idx in dataset[0]:
+            logit_diff = torch.tensor([[0.0]], device = model_device)
+            total_graphs = 0  # To track the total number of graphs across train, val, and test
 
-        # Process each dataset: train, val, test
-        for dataset in masked_data:
             for graph_idx in dataset[0][motif_idx]:
                 total_graphs += 1  # Count graphs
                 data = dataset[1][graph_idx].to(model_device)
@@ -854,12 +827,9 @@ def plot_and_save_distribution(model, epoch, image_dir, motif_list, image_files,
 
         # Normalize the logit difference by the total number of graphs
         
-        motif_colors[motif_idx] = logit_diff.item() / total_graphs if total_graphs!= 0 else 0
+        motif_impact[motif_idx] = logit_diff.item() / total_graphs if total_graphs!= 0 else 0
             
-    
-    # plot_distribution(model.motif_params.detach().cpu(), title, image_path, motif_list, motif_colors)
-    # image_files.append(image_path)
-    return motif_colors
+    return motif_impact
 
 def early_stopping(val_loss, best_val_loss, delta, patience, epochs_without_improvement, model, output_dir, dataset_name):
     if val_loss < best_val_loss - delta:

@@ -18,10 +18,11 @@ from Parser import get_parser
 import json
 import os
 import csv
+from MultiChannel_gnn import GNNModel
 # Training the model and plotting the losses
-from Utils_Train import train_and_evaluate_model, remove_bad_mols, evaluate_model, get_masked_graphs_from_list, evaluate_model_prediction, mae, rmse, plot_and_save_distribution
+from Utils_Train import train_and_evaluate_model, remove_bad_mols, evaluate_model, get_masked_graphs_from_list, mae, rmse, plot_and_save_distribution, compute_pos_weights
 from Utils_plot import plot_losses
-from Utils_params import get_marginal_importance_of_motifs, get_motif_importance_stat, save_csv_motif_importance_multiclass
+from Utils_params import save_csv_motif_importance_multiclass
 
 
 
@@ -47,9 +48,9 @@ dataset_column_dict = {'tox21': ['NR-AR', 'NR-AR-LBD','NR-AhR','NR-Aromatase','N
                                  'NR-PPAR-gamma', 'SR-ARE','SR-ATAD5', 'SR-HSE','SR-MMP','SR-p53']}
 
 
-training_data = MolDataset(root=".", split='training',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], task_type = args.task_type, normalize = False)
-validation_data = MolDataset(root=".", split='valid',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], task_type = args.task_type, normalize = False)
-test_data = MolDataset(root=".", split='test',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], task_type = args.task_type, normalize = False)
+training_data = MolDataset(root=".", split='training',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], normalize = False, lookup = lookup)
+validation_data = MolDataset(root=".", split='valid',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], normalize = False, lookup = lookup)
+test_data = MolDataset(root=".", split='test',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], normalize = False, lookup = test_data_lookup)
 
 # Removing molecules that cant be parsed by RDkit
 training_data = remove_bad_mols(training_data)
@@ -61,6 +62,7 @@ config = {"model_type": args.model_type,
           "hidden":args.hidden,
           "epochs":args.epochs,
           "lr": args.lr,
+          "expl_lr": args.expl_lr,
           "dataset":dataset_name,
           "algorithm": args.algorithm,
           "fold": args.fold,
@@ -69,6 +71,7 @@ config = {"model_type": args.model_type,
           "class_reg": args.class_reg,
           "layer_type": args.layer_type,
           "ent_reg":args.ent_reg,
+          "date_tag": date_tag,
           "task": args.task_type}
 
 
@@ -78,6 +81,7 @@ if not os.path.exists(output_dir):
 with open(f'{output_dir}/{dataset_name}config.json', 'w') as fp:
     json.dump(config, fp)
     
+class_weights_for_positive = compute_pos_weights(training_data)
     
 # Create data loaders
 batch_size = config["batch_size"]
@@ -88,14 +92,8 @@ test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, pin_me
 print(f"DataLoader ready: {config}")
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-from Dual_channel_gin_extend_expl import GNNModel
+
 if config["model_type"] == "Vanilla":
-    # model = GNNModel(input_dim = training_data.num_features, 
-    #                   hidden_channels = config["hidden"], 
-    #                   output_dim = training_data.num_classes, 
-    #                   num_layers = config["num_mp_layers"],
-    #                   layer_type = config["layer_type"],
-    #                   task_type = args.task_type)
     model = GNNModel(input_dim = training_data.num_features, 
                       hidden_channels = config["hidden"], 
                       output_dim = training_data.num_classes, 
@@ -105,7 +103,6 @@ if config["model_type"] == "Vanilla":
                       task_type = args.task_type)
     
 elif config["model_type"] == "MultiChannel":
-    # from Single_channel_gin import GNNModel
     params_motif_x_class = torch.full((len(motif_list), training_data.num_classes), args.base_importance)
     model = GNNModel(input_dim = training_data.num_features, 
                       hidden_channels = config["hidden"], 
@@ -134,7 +131,7 @@ for param in model.parameters():
 # Now, define the optimizer to only update 'motif_params'
 if hasattr(model, 'motif_params'):
     optimizer = AdamW([
-        {'params': model.motif_params, 'lr': 0.001},  # Only motif_params will be updated
+        {'params': model.motif_params, 'lr': config["expl_lr"]},  # Only motif_params will be updated
         {'params':params_except_w1}
     ], config["lr"])
 else:
@@ -161,13 +158,14 @@ else:
                                                                               crit,optimizer,config["epochs"], 
                                                                               train_loader,val_loader, device, config, 
                                                                               output_dir = output_dir+"/explainer/",
-                                                                              plot=True,  
+                                                                              plot=False,  
                                                                               motif_list=motif_list,
                                                                               ignore_unknowns = args.ignore_unknowns,
                                                                               dataset_name=dataset_name,
                                                                               train_mask_data = (train_mask_data, training_data),
                                                                               val_mask_data = (val_mask_data, validation_data), 
-                                                                              test_mask_data =(test_mask_data, test_data))    
+                                                                              test_mask_data =(test_mask_data, test_data),
+                                                                              class_weights = class_weights_for_positive)    
     image_path = output_dir+f"/explainer/{dataset_name}_losses.png"
     plot_losses(train_losses, val_losses, dataset_name, image_path)
     image_path = output_dir+f"/explainer/{dataset_name}_roc-auc.png"
@@ -190,31 +188,4 @@ if hasattr(model, 'motif_params'):
     save_csv_motif_importance_multiclass(model, 0, "", motif_list, [], [(test_mask_data, test_data)], f"{output_dir}/{dataset_name}_explanation_result_with_test.csv")
     save_csv_motif_importance_multiclass(model, 0, "", motif_list, [], [(val_mask_data, validation_data)], f"{output_dir}/{dataset_name}_explanation_result_with_validation.csv")
     save_csv_motif_importance_multiclass(model, 0, "", motif_list, [], [(train_mask_data, training_data)], f"{output_dir}/{dataset_name}_explanation_result_with_train.csv")
-#     res_test = plot_and_save_distribution(model, 0, "", motif_list, [], [(test_mask_data, test_data)])
-# #     res_test = get_motif_importance_stat(test_loader, vanilla_model.test_lookup, test_graph_to_motifs, vanilla_model, device)
-    
-# #     compute_motif_impact(mask_data, model, model_device)
-
-#     with open(f"{output_dir}/{dataset_name}_explanation_result_with_test.csv", mode='w', newline='') as file:
-#         writer = csv.writer(file)
-#         writer.writerow(res_test.keys())
-#         writer.writerows(zip(*res_test.values()))
-
-# #     res_val = get_motif_importance_stat(val_loader, vanilla_model.lookup, graph_to_motifs, vanilla_model, device)
-#     res_test = plot_and_save_distribution(model, 0, "", motif_list, [], [(val_mask_data, validation_data)])
-
-#     with open(f"{output_dir}/{dataset_name}_explanation_result_with_validation.csv",mode='w', newline='') as file:
-#         writer = csv.writer(file)
-#         writer.writerow(res_val.keys())
-#         writer.writerows(zip(*res_val.values()))
-    
-# #     res_train = get_motif_importance_stat(train_loader, vanilla_model.lookup, graph_to_motifs, vanilla_model, device)
-#     res_train = plot_and_save_distribution(model, 0, "", motif_list, [], [(train_mask_data, training_data)])
-#     with open(f"{output_dir}/{dataset_name}_explanation_result_with_train.csv", mode='w', newline='') as file:
-#         writer = csv.writer(file)
-#         writer.writerow(res_train.keys())
-#         writer.writerows(zip(*res_train.values()))
-    
-
-    
     

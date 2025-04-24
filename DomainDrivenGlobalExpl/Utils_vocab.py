@@ -147,6 +147,7 @@ def get_mol_with_index(smiles, set_atom_index = True):
     C1C2C3C4
     '''
     mol = Chem.MolFromSmiles(smiles)
+    mol = sanitize(mol)
     if mol is None:
         return None
     Chem.Kekulize(mol)
@@ -407,7 +408,10 @@ def add_fragment(fragment, molecule_smiles, data, lookup, is_test=False):
     #     lookup.add_entry_test(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
     # else:
     #     lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
-    data_label_count = data.y.squeeze().shape[0]
+    try:
+        data_label_count = data.y.squeeze().shape[0]
+    except IndexError:
+        data_label_count = data.y.shape[0]
         
     if is_test:
         if data_label_count == 1:
@@ -432,25 +436,6 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
             for fragment in all_fragments:
                 #Todo add min length
                 add_fragment(fragment, molecule_smiles, data, lookup, is_test)
-#     if algorithm == 'RBRICS':
-#         for i, data in enumerate(dataset):
-#             molecule_smiles = data["smiles"]
-#             to_process = [molecule_smiles]
-#             original_mol = True
-
-#             while to_process:
-#                 # input(to_process)
-#                 smiles_string = to_process.pop()
-#                 molecule = process_molecule(smiles_string, original_mol)
-#                 original_mol = False
-
-#                 all_fragments = fragment_molecule(molecule)
-#                 for fragment in all_fragments:
-#                     #Todo add min length
-#                     fragment_smiles = handle_fragment(fragment, molecule_smiles, data, lookup, is_test)
-#                     if fragment_smiles:
-#                         # print("here",fragment_smiles)
-#                         to_process.append(fragment_smiles)
     elif algorithm == 'BRICS':
         for i, data in enumerate(dataset):
             molecule_smiles = data["smiles"]
@@ -469,7 +454,10 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
             for i,c in enumerate(cliques):
                 cmol = get_clique_mol(mol_mgssl, c)
                 fragment_smiles = get_smiles(cmol)
-                data_label_count = data.y.squeeze().shape[0]
+                try:
+                    data_label_count = data.y.squeeze().shape[0]
+                except IndexError:
+                    data_label_count = data.y.shape[0]
                 if is_test:
                     if data_label_count == 1:
                         lookup.add_entry_test(molecule_smiles, fragment_smiles, c, data.y.item())
@@ -480,27 +468,8 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
                         lookup.add_entry(molecule_smiles, fragment_smiles, c, data.y.item())
                     else:
                         lookup.add_entry(molecule_smiles, fragment_smiles, c, data.y.tolist())
-            # pbonds = list(FindrBRICSBonds(molecule))
-            # ppieces3 = BreakrBRICSBonds(molecule, pbonds)
-            # clique = Chem.GetMolFrags(ppieces3, asMols=False)
-            # all_fragments = extract_clique_fragments(molecule,clique)
-            # for fragment in all_fragments:
-            #     #Todo add min length
-            #     add_fragment(fragment, molecule_smiles, data, lookup, is_test)
-            #     # fragment_smiles = handle_fragment(fragment, molecule_smiles, data, lookup, is_test)
     else:
-        parts = algorithm.split("_")
-        if parts[0] == "Energy":
-            for i, data in enumerate(dataset):
-                molecule_smiles = data["smiles"]
-                molecule = process_molecule(molecule_smiles, original_mol=True)
-                all_fragments = energy_based_fragmentation(molecule, energy_threshold = int(parts[1]))[0]
-                for fragment in all_fragments:
-                    #Todo add min length
-                    add_fragment(fragment, molecule_smiles, data, lookup, is_test)
-                    # fragment_smiles = handle_fragment(fragment, molecule_smiles, data, lookup, is_test)
-        else:
-            raise Exception(f'Incorrect Algorithm {algorithm}')
+        raise Exception(f'Incorrect Algorithm {algorithm}')
             
 def get_smiles(mol):
     return Chem.MolToSmiles(mol, kekuleSmiles=True)
