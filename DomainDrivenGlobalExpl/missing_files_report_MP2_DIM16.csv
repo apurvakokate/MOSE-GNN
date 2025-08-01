@@ -1,0 +1,89 @@
+Dataset,Architecture,Type,Fold,EXPL_LR,GNN_LR,Missing Files
+hERG,GAT,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+hERG,GIN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+hERG,SAGE,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+hERG,GCN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+hERG,GAT,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+hERG,GIN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+hERG,SAGE,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+hERG,GCN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+esol,SAGE,RBRICS,0,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-esol-SEED-0-FOLD-0-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/esol_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-esol-SEED-0-FOLD-0-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/esol_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-esol-SEED-0-FOLD-0-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/esol_explanation_result_with_test.csv"
+esol,GCN,RBRICS,2,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-esol-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/esol_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-esol-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/esol_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-esol-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/esol_explanation_result_with_test.csv"
+Lipophilicity,GAT,RBRICS,0,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GAT-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GAT-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GAT-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,SAGE,RBRICS,0,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GCN,RBRICS,0,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GAT,RBRICS,1,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GAT-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GAT-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GAT-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GIN,RBRICS,1,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GIN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GIN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GIN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,SAGE,RBRICS,1,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-SAGE-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GCN,RBRICS,1,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GCN,RBRICS,2,0.01,0.0001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.0001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Benzene,GIN,RBRICS,1,0.01,0.0001,Folder matching pattern not found
+Benzene,SAGE,RBRICS,1,0.01,0.0001,Folder matching pattern not found
+Benzene,GAT,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Benzene,GIN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Benzene,SAGE,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Benzene,GCN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Benzene,GAT,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Benzene,GIN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Benzene,SAGE,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Benzene,GCN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,GAT,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,GIN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,SAGE,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,GCN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,GAT,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,GIN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,SAGE,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Alkane_Carbonyl,GCN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,GIN,RBRICS,1,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,SAGE,RBRICS,1,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,GAT,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,GIN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,SAGE,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,GCN,RBRICS,2,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,GAT,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,GIN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,SAGE,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+Fluoride_Carbonyl,GCN,RBRICS,3,0.01,0.0001,Folder matching pattern not found
+hERG,GAT,RBRICS,2,0.01,0.001,Folder matching pattern not found
+hERG,GIN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+hERG,SAGE,RBRICS,2,0.01,0.001,Folder matching pattern not found
+hERG,GCN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+hERG,GAT,RBRICS,3,0.01,0.001,Folder matching pattern not found
+hERG,GIN,RBRICS,3,0.01,0.001,Folder matching pattern not found
+hERG,SAGE,RBRICS,3,0.01,0.001,Folder matching pattern not found
+hERG,GCN,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Lipophilicity,GIN,RBRICS,0,0.01,0.001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GIN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GIN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-0-GIN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GAT,RBRICS,1,0.01,0.001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GAT-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GAT-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GAT-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GIN,RBRICS,1,0.01,0.001,../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GIN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv
+Lipophilicity,GCN,RBRICS,1,0.01,0.001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GCN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GCN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-1-GCN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GAT,RBRICS,2,0.01,0.001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GAT-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GAT-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GAT-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Lipophilicity,GCN,RBRICS,2,0.01,0.001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_Reg/EXPT-14R-Lipophilicity-SEED-0-FOLD-2-GCN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Lipophilicity_explanation_result_with_test.csv"
+Benzene,GIN,RBRICS,1,0.01,0.001,"../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_BC/EXPT-14BC-Benzene-SEED-0-FOLD-1-GIN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Benzene_explanation_result_with_train.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_BC/EXPT-14BC-Benzene-SEED-0-FOLD-1-GIN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Benzene_explanation_result_with_validation.csv, ../STABLE/RBRICS_MINORITY_MP2_DIM16/MOSE_BC/EXPT-14BC-Benzene-SEED-0-FOLD-1-GIN-EXPLLR0.01-GNNLR0.001-SingleChannel-RBRICS/Benzene_explanation_result_with_test.csv"
+Benzene,SAGE,RBRICS,1,0.01,0.001,Folder matching pattern not found
+Benzene,GAT,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Benzene,GIN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Benzene,SAGE,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Benzene,GCN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Benzene,GAT,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Benzene,GIN,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Benzene,SAGE,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Benzene,GCN,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,GAT,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,GIN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,SAGE,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,GCN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,GAT,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,GIN,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,SAGE,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Alkane_Carbonyl,GCN,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,GIN,RBRICS,1,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,SAGE,RBRICS,1,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,GAT,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,GIN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,SAGE,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,GCN,RBRICS,2,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,GAT,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,GIN,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,SAGE,RBRICS,3,0.01,0.001,Folder matching pattern not found
+Fluoride_Carbonyl,GCN,RBRICS,3,0.01,0.001,Folder matching pattern not found

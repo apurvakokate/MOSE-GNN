@@ -5,13 +5,12 @@ from torch.nn import BatchNorm1d as BN
 from torch.nn import Linear, ReLU, Sequential, Dropout
 from torch_geometric.nn.conv import GINConv
 import torch
-from torch_scatter import scatter_add
 from Utils_Train import evaluate_model
 from Utils_model import create_conv_layers 
 import pdb
 class GNNModel(nn.Module): 
     def __init__(self,input_dim, output_dim, hidden_channels, num_layers, layer_type, use_explainer=False,
-                motif_params=None, lookup=None, task_type= 'BinaryClass', test_lookup=None):
+                motif_params=None, lookup=None, task_type= 'BinaryClass', test_lookup=None, deg=None):
         super().__init__()
         num_mp_layers  = num_layers
         hidden         = hidden_channels
@@ -19,7 +18,7 @@ class GNNModel(nn.Module):
         self.num_classes = output_dim
         self.task_type = task_type
         
-        self.convs = create_conv_layers(input_dim, hidden_channels*2, num_layers, layer_type)
+        self.convs = create_conv_layers(input_dim, hidden_channels*2, num_layers, layer_type, deg = deg)
         self.lin1 = Linear(hidden_channels*2, hidden_channels*2)
         self.lin2 = Linear(hidden_channels*2, self.num_classes)
         

@@ -17,13 +17,13 @@ do
         
             for LAYERTYPE in GATConv GINConv GCNConv
             do
-                for MODELTYPE in SingleChannel
+                for ENT in 0.0
                 do 
-                    for DATASETNAME in hERG
+                    for DATASETNAME in Mutagenicity
                     do
-                        FOLDER="0205_ALL/0205herg/EXPT-12BC-$DATASETNAME-SEED-$SEED-FOLD-$FOLD-$LAYERTYPE-$MODELTYPE-$ALGORITHM"
-                        VanillaFOLDER="0205_ALL/Vanilla_BC/EXPT-12BC-$DATASETNAME-SEED-$SEED-FOLD-$FOLD-$LAYERTYPE-Vanilla-None"
-                        python 4_run_vanilla_compare.py --dataset_name $DATASETNAME --seed $SEED --fold $FOLD --algorithm $ALGORITHM --layer_type $LAYERTYPE --task_type BinaryClass --model_type $MODELTYPE --size_reg 0.0 --date_tag 0205 --epochs 500 --output_dir $FOLDER --vanilla_dir $VanillaFOLDER
+                        FOLDER="0205_ENT/Mutagenicity/EXPT-13BC-$DATASETNAME-SEED-$SEED-FOLD-$FOLD-$LAYERTYPE-$ENT-$ALGORITHM"
+                        VanillaFOLDER="0205_ENT/Vanilla_BC/EXPT-12BC-$DATASETNAME-SEED-$SEED-FOLD-$FOLD-$LAYERTYPE-Vanilla-None"
+                        python 4_run_vanilla_compare.py --dataset_name $DATASETNAME --seed $SEED --fold $FOLD --algorithm $ALGORITHM --layer_type $LAYERTYPE --task_type Regression --model_type SingleChannel --size_reg 0.0 --date_tag RBRICS0.005 --epochs 500 --output_dir $FOLDER --vanilla_dir $VanillaFOLDER
                         # Kill any lingering Python processes
                         pkill -f 4_run_vanilla_compare.py
                         # Pause to allow memory reclamation

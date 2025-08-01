@@ -1,0 +1,63 @@
+% ===== Architecture: GAT =====
+\begin{tabular}{lcccccc}
+\hline
+Dataset & \texttt{MP2\_DIM8} & \texttt{MP2\_DIM16} & \texttt{MP2\_DIM32} & \texttt{MP3\_DIM8} & \texttt{MP3\_DIM16} & \texttt{MP3\_DIM32} \\ \hline
+Alkane_Carbonyl & 0.842 & 0.853 & 0.856 & 0.811 & 0.851 & \textbf{0.868} \\
+BBBP & 0.772 & \textbf{0.845} & 0.816 & 0.780 & 0.839 & 0.834 \\
+Benzene & 0.926 & 0.942 & 0.948 & 0.943 & 0.946 & \textbf{0.950} \\
+Fluoride_Carbonyl & 0.890 & \textbf{0.944} & 0.925 & 0.854 & 0.929 & 0.943 \\
+Lipophilicity & \textbf{0.838} & 0.810 & 0.783 & 0.837 & 0.808 & 0.782 \\
+Mutagenicity & 0.741 & 0.741 & 0.760 & 0.733 & 0.759 & \textbf{0.778} \\
+esol & 0.543 & 0.469 & 0.431 & \textbf{0.562} & 0.458 & 0.426 \\
+hERG & 0.672 & 0.706 & 0.726 & 0.672 & 0.755 & \textbf{0.761} \\
+\hline
+\end{tabular}
+
+
+% ===== Architecture: GCN =====
+\begin{tabular}{lcccccc}
+\hline
+Dataset & \texttt{MP2\_DIM8} & \texttt{MP2\_DIM16} & \texttt{MP2\_DIM32} & \texttt{MP3\_DIM8} & \texttt{MP3\_DIM16} & \texttt{MP3\_DIM32} \\ \hline
+Alkane_Carbonyl & 0.821 & 0.845 & 0.851 & 0.829 & 0.845 & \textbf{0.863} \\
+BBBP & 0.771 & 0.814 & 0.835 & 0.812 & 0.825 & \textbf{0.843} \\
+Benzene & 0.951 & 0.954 & \textbf{0.961} & 0.950 & 0.955 & 0.959 \\
+Fluoride_Carbonyl & 0.890 & 0.915 & 0.917 & 0.900 & 0.938 & \textbf{0.950} \\
+Lipophilicity & \textbf{0.828} & 0.778 & 0.770 & 0.820 & 0.782 & 0.774 \\
+Mutagenicity & 0.731 & 0.742 & 0.781 & 0.738 & 0.783 & \textbf{0.788} \\
+esol & \textbf{0.537} & 0.477 & 0.439 & 0.528 & 0.453 & 0.448 \\
+hERG & 0.668 & 0.698 & 0.709 & 0.694 & 0.708 & \textbf{0.758} \\
+\hline
+\end{tabular}
+
+
+% ===== Architecture: GIN =====
+\begin{tabular}{lcccccc}
+\hline
+Dataset & \texttt{MP2\_DIM8} & \texttt{MP2\_DIM16} & \texttt{MP2\_DIM32} & \texttt{MP3\_DIM8} & \texttt{MP3\_DIM16} & \texttt{MP3\_DIM32} \\ \hline
+Alkane_Carbonyl & 0.906 & 0.938 & \textbf{0.950} & 0.893 & 0.931 & 0.932 \\
+BBBP & 0.809 & 0.868 & 0.879 & 0.830 & 0.885 & \textbf{0.908} \\
+Benzene & 0.963 & 0.969 & 0.975 & 0.968 & 0.979 & \textbf{0.980} \\
+Fluoride_Carbonyl & 0.899 & 0.917 & \textbf{0.955} & 0.904 & 0.921 & 0.940 \\
+Lipophilicity & \textbf{0.828} & 0.737 & 0.676 & 0.766 & 0.702 & 0.644 \\
+Mutagenicity & 0.801 & 0.830 & 0.838 & 0.801 & 0.840 & \textbf{0.861} \\
+esol & \textbf{0.570} & 0.474 & 0.473 & 0.530 & 0.504 & 0.471 \\
+hERG & 0.725 & 0.758 & 0.799 & 0.769 & 0.777 & \textbf{0.811} \\
+\hline
+\end{tabular}
+
+
+% ===== Architecture: SAGE =====
+\begin{tabular}{lcccccc}
+\hline
+Dataset & \texttt{MP2\_DIM8} & \texttt{MP2\_DIM16} & \texttt{MP2\_DIM32} & \texttt{MP3\_DIM8} & \texttt{MP3\_DIM16} & \texttt{MP3\_DIM32} \\ \hline
+Alkane_Carbonyl & 0.864 & 0.854 & 0.860 & 0.858 & 0.869 & \textbf{0.911} \\
+BBBP & 0.815 & 0.804 & 0.828 & 0.812 & 0.822 & \textbf{0.837} \\
+Benzene & 0.947 & 0.947 & 0.948 & 0.955 & 0.959 & \textbf{0.964} \\
+Fluoride_Carbonyl & 0.861 & 0.920 & 0.928 & 0.868 & 0.927 & \textbf{0.929} \\
+Lipophilicity & 0.844 & 0.818 & 0.780 & \textbf{0.930} & 0.777 & 0.765 \\
+Mutagenicity & 0.772 & 0.775 & 0.799 & 0.767 & 0.778 & \textbf{0.805} \\
+esol & \textbf{0.655} & 0.462 & 0.431 & 0.580 & 0.466 & 0.447 \\
+hERG & 0.694 & 0.707 & 0.715 & 0.699 & 0.732 & \textbf{0.750} \\
+\hline
+\end{tabular}
+

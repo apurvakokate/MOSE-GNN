@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import seaborn as sns
+import pandas as pd
 
 def plot(tensor, motif_list, image_path=None):
     C = 2
@@ -74,6 +75,38 @@ def plot(tensor, motif_list, image_path=None):
     else:
         plt.show()
         plt.close()
+        
+# def plot_motif_impact(output_dir, file_name, dataset_name):
+#     epoch_data = pd.read_csv(f"{output_dir}{dataset_name}.csv")
+#     motif_params_per_epoch = epoch_data["Motif params"]
+#     logit_diffs_per_epoch = epoch_data["Logit Diff"]
+    
+#     num_epochs = len(motif_params_per_epoch)
+#     num_motifs = len(motif_params_per_epoch[0])
+    
+#     # Stack to shape (epochs, motifs)
+#     motif_params = np.stack([mp.detach().cpu().numpy() for mp in motif_params_per_epoch])  # shape: (E, M)
+#     logit_diffs = np.stack([ld.detach().cpu().numpy() for ld in logit_diffs_per_epoch])    # shape: (E, M)
+
+#     # Transpose to shape (M, E) for tracing each motif
+#     motif_params = motif_params.T
+#     logit_diffs = logit_diffs.T
+
+#     cmap = get_cmap("tab20")  # enough distinct colors
+
+#     plt.figure(figsize=(10, 6))
+#     for i in range(num_motifs):
+#         color = cmap(i % 20)
+#         plt.plot(motif_params[i], logit_diffs[i], '-o', label=f'Motif {i}', color=color, markersize=4, alpha=0.7)
+    
+#     plt.xlabel("Motif Parameter (x)")
+#     plt.ylabel("Logit Difference (y)")
+#     plt.title("Motif Trajectory over Epochs")
+#     plt.grid(True, linestyle='--', alpha=0.5)
+#     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small', ncol=1)
+#     plt.tight_layout()
+#     plt.savefig(f'{output_dir}{file_name}')
+    
     
 def plot_losses(train_losses, val_losses, dataset_name, image_path=None, headers = None):
     plt.figure(figsize=(12, 5))

@@ -10,7 +10,7 @@ from Explainer import Explainer
 from GNNExplainer import GNNExplainer
 from PGExplainer import PGExplainer
 from tqdm import tqdm
-import torch_scatter
+import torch.nn.functional as F
 
 # def normalize_ratio(c0, c1, epsilon=1e-8):
 #     """Calculate normalized ratio difference."""
@@ -243,16 +243,14 @@ import torch_scatter
     
 #     return result
 
-def save_posthoc_motif_importance(model, motif_list, masked_data, csv_file_path, vanilla_model=None, lookup=None, test_lookup=None, task_type="BinaryClass", dataset_name = None, model_type = None):
+def save_posthoc_motif_importance(model, motif_list, masked_data, csv_file_path, lookup=None, test_lookup=None, task_type="BinaryClass", dataset_name = None, model_type = None):
     '''
     Example usage save_csv_motif_importance(model, motif_list, [(train_mask_data, training_data)], train_file, vanilla_model= vanilla_model, lookup = test_data_lookup)
     '''
     
     # Get the device from the model
     model_device = next(model.parameters()).device
-    motif_weights = model.motif_params.detach().cpu()
     csv_data = []  # Collect data for the CSV file
-    use_vanilla = vanilla_model is not None
     if task_type == 'BinaryClass':
         expl_mode = 'binary_classification' 
     elif task_type == 'Regression':
@@ -260,135 +258,128 @@ def save_posthoc_motif_importance(model, motif_list, masked_data, csv_file_path,
     else:
         raise Exception('PostHoc not implemented for this setting')
     
-    if use_vanilla:
+    if dataset_name == "Lipophilicity" and model_type == "GATConv":
+        pgex_edge_size = 0.0001
+    elif dataset_name == "hERG" and model_type == "GCNConv":
+        pgex_edge_size = 0.0001
+    else:
+        pgex_edge_size = 0.0003
         
-        if dataset_name == "Lipophilicity" and model_type == "GATConv":
-            pgex_edge_size = 0.0001
-        elif dataset_name == "hERG" and model_type == "GCNConv":
-            pgex_edge_size = 0.0001
-        else:
-            pgex_edge_size = 0.0003
-        
-        # Initialize GNNExplainer
-        gnn_explainer = Explainer(
-            model=vanilla_model,
-            algorithm=GNNExplainer(lr=0.05, epochs=150, edge_ent=8.0),
+    # Initialize GNNExplainer
+    gnn_explainer = Explainer(
+        model=model,
+        algorithm=GNNExplainer(lr=0.05, epochs=150, edge_ent=8.0),
+        explanation_type='phenomenon',
+        node_mask_type='object',
+        edge_mask_type=None,
+        model_config=dict(
+            mode=expl_mode,
+            task_level='graph',
+            return_type='raw',
+        ),
+    )
+    pgex_epoch = 50
+    pg_explainer = Explainer(
+            model=model,
+            algorithm=PGExplainer(epochs=pgex_epoch, lr = 0.05, edge_size=pgex_edge_size), # edge_size=0.0001,edge_ent=0.2
             explanation_type='phenomenon',
-            node_mask_type='object',
-            edge_mask_type=None,
+            edge_mask_type='object',
             model_config=dict(
                 mode=expl_mode,
                 task_level='graph',
                 return_type='raw',
             ),
         )
-        pgex_epoch = 50
-        pg_explainer = Explainer(
-                model=vanilla_model,
-                algorithm=PGExplainer(epochs=pgex_epoch, lr = 0.05, edge_size=pgex_edge_size), # edge_size=0.0001,edge_ent=0.2
-                explanation_type='phenomenon',
-                edge_mask_type='object',
-                model_config=dict(
-                    mode=expl_mode,
-                    task_level='graph',
-                    return_type='raw',
-                ),
-            )
-        # Train against a variety of node-level or graph-level predictions:
-        for epoch in tqdm(range(pgex_epoch)):
-            for data in masked_data[0][2]: #train_loader
-                data = data.to(model_device)
-                if task_type == 'BinaryClass':
-                    loss = pg_explainer.algorithm.train(epoch, vanilla_model, data.x, data.edge_index,
-                                                     target=data.y, batch=data.batch)
-                elif task_type == 'Regression':
-                    loss = pg_explainer.algorithm.train(epoch, vanilla_model, data.x, data.edge_index,
-                                                 target=data.y.float(), batch=data.batch)
-        
-        # Initialize post-hoc weights (same size as the number of motifs)
-        gnnex_weights = torch.full((len(motif_list)+1, 1), 0.0)
-        pgex_weights = torch.full((len(motif_list)+1, 1), 0.0)
+    # Train against a variety of node-level or graph-level predictions:
+    for epoch in tqdm(range(pgex_epoch)):
+        for data in masked_data[0][2]: #train_loader
+            data = data.to(model_device)
+            if task_type == 'BinaryClass':
+                loss = pg_explainer.algorithm.train(epoch, model, data.x, data.edge_index,
+                                                 target=data.y, batch=data.batch)
+            elif task_type == 'Regression':
+                loss = pg_explainer.algorithm.train(epoch, model, data.x, data.edge_index,
+                                             target=data.y.float(), batch=data.batch)
 
-        # Track counts for averaging
-        motif_counts = torch.full((len(motif_list)+1, 1), 0)
+    # Initialize post-hoc weights (same size as the number of motifs)
+    gnnex_weights = torch.full((len(motif_list)+1, 1), 0.0)
+    pgex_weights = torch.full((len(motif_list)+1, 1), 0.0)
 
-        for dataset_idx, dataset in enumerate(masked_data): # train val and test samples
-            for data in dataset[2]: #loader
-                data = data.to(model_device) #original data list
-                
-                if task_type == 'BinaryClass':
-                    target = data.y
-                elif task_type == 'Regression':
-                    target = data.y.float()
-                
-                # Run explainer on the graph
-                gnnex_explanation = gnn_explainer(data.x, data.edge_index, target = target, batch=data.batch)
-                pgex_explanation = pg_explainer(data.x, data.edge_index, target = target, batch=data.batch)
-                
-                
-                gnnex_node_importance = gnnex_explanation.node_mask.squeeze().detach().cpu()
-                
-                edge_importance = pgex_explanation.edge_mask.detach().cpu()
-                edge_index = data.edge_index.cpu()
-                pgex_node_importance = torch.zeros(data.num_nodes)
+    # Track counts for averaging
+    motif_counts = torch.full((len(motif_list)+1, 1), 0)
 
-                # Sum edge importance for connected edges per node
-                # for i, (src, dst) in enumerate(edge_index.t()):
-                #     importance = edge_importance[i].item()
-                #     node_importance[src] += importance
-                #     node_importance[dst] += importance  # Consider both directions
-                src, dst = edge_index[0], edge_index[1]
-                pgex_node_importance.scatter_add_(0, src, edge_importance)
-                pgex_node_importance.scatter_add_(0, dst, edge_importance)
-                    
-                degree = torch_scatter.scatter_add(torch.ones_like(edge_index[0]), edge_index[0])
-                pgex_node_importance = pgex_node_importance / (2 * degree.clamp(min=1))
-    
-            
-                # print(gnnex_node_importance)
-                # input(pgex_node_importance)
-            
-            
-                # Accumulate importance scores per motif
-                batch = data.batch.cpu().numpy()
-                num_graphs = int(data.batch.max()) + 1
+    for dataset_idx, dataset in enumerate(masked_data): # train val and test samples
+        for data in dataset[2]: #loader
+            data = data.to(model_device) #original data list
 
-                for graph_idx in range(num_graphs):
-                    # Get the SMILES for this subgraph
-                    graph_smiles = data.smiles[graph_idx]
+            if task_type == 'BinaryClass':
+                target = data.y
+            elif task_type == 'Regression':
+                target = data.y.float()
 
-                    # Get node indices belonging to this subgraph
-                    subgraph_nodes = np.where(batch == graph_idx)[0]
+            # Run explainer on the graph
+            gnnex_explanation = gnn_explainer(data.x, data.edge_index, target = target, batch=data.batch)
+            pgex_explanation = pg_explainer(data.x, data.edge_index, target = target, batch=data.batch)
 
-                    # Get motif lookup for this specific SMILES
-                    motif_lookup = lookup[graph_smiles] if dataset_idx != 2 else test_lookup[graph_smiles]
 
-                    # Process nodes in this subgraph
-                    for global_node in subgraph_nodes:
-                        # Convert to local node index (original graph's node numbering)
-                        local_node = int(global_node - subgraph_nodes[0])
+            gnnex_node_importance = gnnex_explanation.node_mask.squeeze().detach().cpu()
 
-                        if local_node in motif_lookup:
-                            motif, motif_idx = motif_lookup[local_node]
-                            if motif_idx is not None:
-                                gnnex_weights[motif_idx] += gnnex_node_importance[global_node].item()
-                                pgex_weights[motif_idx] += pgex_node_importance[global_node].item()
-                                motif_counts[motif_idx] += 1
-                            else:
-                                gnnex_weights[len(motif_list)] += gnnex_node_importance[global_node].item()
-                                pgex_weights[len(motif_list)] += pgex_node_importance[global_node].item()
-                                motif_counts[len(motif_list)] += 1
-    
-                # # Accumulate importance scores per motif
-                # for graph_smile in data.smiles:
-                #     for node, (motif, motif_idx) in lookup[graph_smile].items():
-                #         if motif_idx is not None:  # Skip motifs with `None` index
-                #             post_hoc_weights[motif_idx] += node_importance[node].item()
-                #             motif_counts[motif_idx] += 1  # Count occurrences
+            edge_importance = pgex_explanation.edge_mask.detach().cpu()
+            edge_index = data.edge_index.cpu()
+            pgex_node_importance = torch.zeros(data.num_nodes)
 
-        # Compute the average node importance per motif
-        gnnex_weights /= motif_counts.clamp(min=1)  # Avoid division by zero
-        pgex_weights /= motif_counts.clamp(min=1)  # Avoid division by zero
+            # Sum edge importance for connected edges per node
+            # for i, (src, dst) in enumerate(edge_index.t()):
+            #     importance = edge_importance[i].item()
+            #     node_importance[src] += importance
+            #     node_importance[dst] += importance  # Consider both directions
+            src, dst = edge_index[0], edge_index[1]
+            pgex_node_importance.scatter_add_(0, src, edge_importance)
+            pgex_node_importance.scatter_add_(0, dst, edge_importance)
+            import torch_scatter
+            degree = torch_scatter.scatter_add(torch.ones_like(edge_index[0]), edge_index[0])
+            pgex_node_importance = pgex_node_importance / (2 * degree.clamp(min=1))
+
+
+            # print(gnnex_node_importance)
+            # input(pgex_node_importance)
+
+
+            # Accumulate importance scores per motif
+            batch = data.batch.cpu().numpy()
+            num_graphs = int(data.batch.max()) + 1
+
+            for graph_idx in range(num_graphs):
+                # Get the SMILES for this subgraph
+                graph_smiles = data.smiles[graph_idx]
+
+                # Get node indices belonging to this subgraph
+                subgraph_nodes = np.where(batch == graph_idx)[0]
+
+                # Get motif lookup for this specific SMILES
+                motif_lookup = lookup[graph_smiles] if dataset_idx != 2 else test_lookup[graph_smiles]
+
+                # Process nodes in this subgraph
+                for global_node in subgraph_nodes:
+                    # Convert to local node index (original graph's node numbering)
+                    local_node = int(global_node - subgraph_nodes[0])
+
+                    if local_node in motif_lookup:
+                        motif, motif_idx = motif_lookup[local_node]
+                        if motif_idx is not None:
+                            gnnex_weights[motif_idx] += gnnex_node_importance[global_node].item()
+                            pgex_weights[motif_idx] += pgex_node_importance[global_node].item()
+                            motif_counts[motif_idx] += 1
+                        else:
+                            gnnex_weights[len(motif_list)] += gnnex_node_importance[global_node].item()
+                            pgex_weights[len(motif_list)] += pgex_node_importance[global_node].item()
+                            motif_counts[len(motif_list)] += 1
+
+
+
+    # Compute the average node importance per motif
+    gnnex_weights /= motif_counts.clamp(min=1)  # Avoid division by zero
+    pgex_weights /= motif_counts.clamp(min=1)  # Avoid division by zero
             
     print("PostHoc evaluation complete")
         
@@ -399,42 +390,28 @@ def save_posthoc_motif_importance(model, motif_list, masked_data, csv_file_path,
         row = [
             motif_idx,
             motif_id,
-            motif_weights[motif_idx].item(),
-            torch.sigmoid(motif_weights[motif_idx]).item()
+            gnnex_weights[motif_idx].item(),
+            pgex_weights[motif_idx].item(),
         ]
-        if use_vanilla:
-            row.extend([
-                gnnex_weights[motif_idx].item(),
-                pgex_weights[motif_idx].item(),
-            ])
+        
         csv_data.append(row)
         
     #Unknown motifs
     row = [
         -1,
         "UNK",
-        99,
-        1.0
+        gnnex_weights[len(motif_list)].item(),
+        pgex_weights[len(motif_list)].item(),
     ]
-    if use_vanilla:
-        row.extend([
-            gnnex_weights[len(motif_list)].item(),
-            pgex_weights[len(motif_list)].item(),
-        ])
     csv_data.append(row)
                 
     # Determine the headers based on vanilla_model presence
     headers = [
         "motif_id",
         "motif",
-        "importance",
-        "sigmoid_importance"
+        "gnnex_importance",
+        "pgex_importance"
     ]
-    if use_vanilla:
-        headers.extend([
-            "gnnex_importance",
-            "pgex_importance"
-        ])
 
     # Write data to the CSV file
     with open(csv_file_path, mode='w', newline='') as file:
@@ -442,104 +419,168 @@ def save_posthoc_motif_importance(model, motif_list, masked_data, csv_file_path,
         writer.writerow(headers)
         writer.writerows(csv_data)
         
-def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, vanilla_model=None):
-    '''
-    Example usage save_csv_motif_importance(model, motif_list, [(train_mask_data, training_data)], train_file, vanilla_model= vanilla_model, lookup = test_data_lookup)
-    '''
+# def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, vanilla_model=False):
+#     '''
+#     Example usage save_csv_motif_importance(model, motif_list, [(train_mask_data, training_data)], train_file, vanilla_model= vanilla_model, lookup = test_data_lookup)
+#     '''
     
-    # Get the device from the model
-    model_device = next(model.parameters()).device
-    motif_weights = model.motif_params.detach().cpu()
-    csv_data = []  # Collect data for the CSV file
-    use_vanilla = vanilla_model is not None
+#     # Get the device from the model
+#     model_device = next(model.parameters()).device
+#     csv_data = []  # Collect data for the CSV file
+#     use_vanilla = vanilla_model
+#     if not use_vanilla:
+#         motif_weights = model.motif_params.detach().cpu()
     
         
+#     # Process each dataset: train, val, test
+#     for dataset in masked_data:
+#         for motif_idx in dataset[0]:
+#             print(f"Processing motif {motif_idx}")
+#             logit_diff = torch.tensor([[0.0]], device=model_device)
+#             log_probabilities_diff = torch.tensor([[0.0]], device=model_device)
+#             for graph_idx in dataset[0][motif_idx]: #masked data list for each motif
+#                 data = dataset[1][graph_idx].to(model_device) #original data list
 
-
-    # Process each dataset: train, val, test
-    for dataset in masked_data:
-        for motif_idx in dataset[0]:
-            print(f"Processing motif {motif_idx}")
-            logit_diff = torch.tensor([[0.0]], device=model_device)
-            if use_vanilla:
-                logit_diff_with_vanilla = torch.tensor([[0.0]], device=model_device)
-            for graph_idx in dataset[0][motif_idx]: #masked data list for each motif
-                data = dataset[1][graph_idx].to(model_device) #original data list
-
-                # Original and perturbed predictions using the main model
-                original_pred, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
-                new_pred, _ = model(
-                    dataset[0][motif_idx][graph_idx].to(model_device),
-                    data.edge_index,
-                    None,
-                    node_to_motifs=data.nodes_to_motifs
-                )
-                logit_diff += original_pred - new_pred
+#                 # Original and perturbed predictions using the main model
+#                 original_pred, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
+#                 new_pred, _ = model(
+#                     dataset[0][motif_idx][graph_idx].to(model_device),
+#                     data.edge_index,
+#                     None,
+#                     node_to_motifs=data.nodes_to_motifs
+#                 )
                 
-                # Process vanilla model if available
-                if use_vanilla:
-                    original_vanilla, _ = vanilla_model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
-                    new_vanilla, _ = vanilla_model(
-                        dataset[0][motif_idx][graph_idx].to(model_device),
-                        data.edge_index,
-                        None,
-                        node_to_motifs=data.nodes_to_motifs
-                    )
+#                 logit_diff += original_pred - new_pred
+                
                     
-                    logit_diff_with_vanilla += original_vanilla - new_vanilla
-                    
+#                 if motif_idx == -1:
+#                     # Prepare the CSV row
+#                     row = [
+#                         -1,
+#                         "UNK",
+#                         graph_idx,
+#                         data.smiles,
+#                         original_pred.item(),
+#                         new_pred.item(),
+#                         F.logsigmoid(original_pred).item(),
+#                         F.logsigmoid(new_pred).item(),
+#                     ]
+#                     if not use_vanilla:
+#                         row.extend([
+#                             99,
+#                             1.0,
+#                         ])
+#                 else:    
+#                     # Prepare the CSV row
+#                     row = [
+#                         motif_idx,
+#                         motif_list[motif_idx],
+#                         graph_idx,
+#                         data.smiles,
+#                         original_pred.item(),
+#                         new_pred.item(),
+#                         F.logsigmoid(original_pred).item(),
+#                         F.logsigmoid(new_pred).item(),
+#                     ]
+#                     if not use_vanilla:
+#                         row.extend([
+#                             motif_weights[motif_idx].item(),
+#                             torch.sigmoid(motif_weights[motif_idx]).item(),
+#                         ])
+#                 row.append(data.y.item())
+#                 csv_data.append(row)
+    
+#     # Determine the headers based on vanilla_model presence
+#     headers = [
+#         "motif_id",
+#         "motif",
+#         "graph_id",
+#         "graph_str",
+#         "original_logit",
+#         "new_logit",
+#         "original_log_prob",
+#         "new_log_prob"
+#     ]
+#     if not use_vanilla:
+#         headers.extend([
+#             "importance",
+#             "sigmoid_importance",
+#         ])
+#     headers.append("class_label")
+
+#     # Write data to the CSV file
+#     with open(csv_file_path, mode='w', newline='') as file:
+#         writer = csv.writer(file)
+#         writer.writerow(headers)
+#         writer.writerows(csv_data)
+
+def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, vanilla_model=False, batch_size=32):
+    """
+    Optimized version of save_csv_motif_importance to reduce memory usage.
+    Computes the logit differences per motif across a dataset and saves to CSV.
+    """
+    model_device = next(model.parameters()).device
+    csv_data = []
+    use_vanilla = vanilla_model
+
+    motif_weights = None
+    if not use_vanilla and hasattr(model, 'motif_params'):
+        motif_weights = model.motif_params.detach().cpu()
+
+    for mask_data, original_data_list in masked_data:
+        for motif_idx, graph_indices in mask_data.items():
+            print(f"Processing motif {motif_idx}")
+
+            for graph_idx in graph_indices:
+                data = original_data_list[graph_idx].to(model_device)
+
+                # Perturbed input data
+                perturbed_data = mask_data[motif_idx][graph_idx].to(model_device)
+
+                # Forward passes
+                with torch.no_grad():
+                    original_pred, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
+                    new_pred, _ = model(perturbed_data, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
+
                 if motif_idx == -1:
-                    # Prepare the CSV row
-                    row = [
-                        -1,
-                        "UNK",
-                        graph_idx,
-                        99,
-                        1.0,
-                        original_pred.item(),
-                        new_pred.item(),
-                    ]
-                else:    
-                    # Prepare the CSV row
-                    row = [
-                        motif_idx,
-                        motif_list[motif_idx],
-                        graph_idx,
-                        motif_weights[motif_idx].item(),
-                        torch.sigmoid(motif_weights[motif_idx]).item(),
-                        original_pred.item(),
-                        new_pred.item(),
-                    ]
-                if use_vanilla:
-                    row.extend([
-                        original_vanilla.item(),
-                        new_vanilla.item()
-                    ])
+                    motif_str = "UNK"
+                    importance = 99
+                    sigmoid_imp = 1.0
+                else:
+                    motif_str = motif_list[motif_idx]
+                    importance = motif_weights[motif_idx].item() if motif_weights is not None else None
+                    sigmoid_imp = torch.sigmoid(torch.tensor(importance)).item() if importance is not None else None
+
+                row = [
+                    motif_idx,
+                    motif_str,
+                    graph_idx,
+                    data.smiles,
+                    original_pred.item(),
+                    new_pred.item(),
+                    F.logsigmoid(original_pred).item(),
+                    F.logsigmoid(new_pred).item()
+                ]
+                if importance is not None and sigmoid_imp is not None:
+                    row.extend([importance, sigmoid_imp])
+
                 row.append(data.y.item())
                 csv_data.append(row)
-    
-    # Determine the headers based on vanilla_model presence
+
     headers = [
-        "motif_id",
-        "motif",
-        "graph_id",
-        "importance",
-        "sigmoid_importance",
-        "original_logit",
-        "new_logit_class" if use_vanilla else "new_logit",
+        "motif_id", "motif", "graph_id", "graph_str",
+        "original_logit", "new_logit",
+        "original_log_prob", "new_log_prob"
     ]
-    if use_vanilla:
-        headers.extend([
-            "original_logit_vanilla",
-            "new_logit_vanilla"
-        ])
+    if motif_weights is not None:
+        headers.extend(["importance", "sigmoid_importance"])
     headers.append("class_label")
 
-    # Write data to the CSV file
     with open(csv_file_path, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
         writer.writerows(csv_data)
+
         
 def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_file_path, vanilla_model=None):
     # Get the device from the model
@@ -602,11 +643,14 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
                                 -1,
                                 "UNK",
                                 graph_idx,
+                                data.smiles,
                                 class_idx,
                                 99,
                                 1.0,
                                 original_prediction[:, class_idx].item(),
                                 new_prediction[:, class_idx].item(),
+                                F.log_softmax(original_prediction[:, class_idx], dim=-1).item(),
+                                F.log_softmax(new_prediction[:, class_idx], dim=-1).item(),
                             ]
                         else:    
                             importance_class = motif_weights[motif_idx, class_idx].item()
@@ -615,11 +659,14 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
                                 motif_idx,
                                 motif_id,
                                 graph_idx,
+                                data.smiles,
                                 class_idx,
                                 importance_class,
                                 sigmoid_importance_class,
                                 original_prediction[:, class_idx].item(),
                                 new_prediction[:, class_idx].item(),
+                                F.log_softmax(original_prediction[:, class_idx], dim=-1).item(),
+                                F.log_softmax(new_prediction[:, class_idx], dim=-1).item(),
                             ]
                         if use_vanilla:
                             row.extend([
@@ -634,11 +681,14 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
         "motif_id",
         "motif",
         "graph_id",
+        "graph_str",
         "class_id",
         "importance",
         "sigmoid_importance",
         "original_logit",
         "new_logit",
+        "original_log_prob",
+        "new_log_prob"
     ]
     if use_vanilla:
         headers.extend([

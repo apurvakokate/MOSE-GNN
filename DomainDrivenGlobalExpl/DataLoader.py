@@ -153,7 +153,12 @@ def build_graph(smiles, y, lookup):
     # Atom features
     type_idx = []
     for atom in mol.GetAtoms():
-        atom_idx = ATOMS.get(str(atom.GetSymbol()), None)
+        symbol = str(atom.GetSymbol())
+        if symbol == '*':
+            # Treat dummy atoms as a special index or skip
+            atom_idx = ATOMS.get('DUMMY', 0)  # Add a special DUMMY index
+        else:
+            atom_idx = ATOMS.get(symbol, None)
         if atom_idx is None:
             raise ValueError(f'Error processing {smiles} at atom {atom.GetSymbol()}. Verify before continuing')
         type_idx.append(atom_idx)
@@ -196,7 +201,7 @@ def build_graph(smiles, y, lookup):
 
 class MolDataset(InMemoryDataset):
     def __init__(self, root, csv_file, split, label_col, normalize=False, mean=None, std=None, 
-                 transform=None, pre_transform=None, pre_filter=None, task_type=None, lookup=None):
+                 transform=None, pre_transform=None, pre_filter=None, num_classes=None, lookup=None):
         self.csv_file = csv_file
         self.split = split
         self.df = pd.read_csv(csv_file)
@@ -204,8 +209,7 @@ class MolDataset(InMemoryDataset):
         self.smiles_list = self.df['smiles'].values
         self.y = self.df[label_col].values
         self.lookup = lookup
-        if isinstance(label_col, list):  
-            self.num_classes_ = len(label_col)
+        self.num_classes_ = num_classes
         
         # Normalization setup
         self.normalize = normalize
@@ -214,9 +218,8 @@ class MolDataset(InMemoryDataset):
                 self.mean = torch.tensor(np.nanmean(self.y), dtype=torch.float)
                 self.std = torch.tensor(np.nanstd(self.y), dtype=torch.float)
             else:
-                self.mean = torch.tensor(mean, dtype=torch.float)
-                self.std = torch.tensor(std, dtype=torch.float)
-
+                self.mean = torch.as_tensor(mean, dtype=torch.float).clone().detach()
+                self.std = torch.as_tensor(std, dtype=torch.float).clone().detach()
         super().__init__(root, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
     @property

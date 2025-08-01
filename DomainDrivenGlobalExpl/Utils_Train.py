@@ -15,12 +15,25 @@ from collections import defaultdict
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import pdb
 import pandas as pd
+from collections import deque
+
+import torch
+
+import gc
+import psutil
+import csv
 
 def compute_pos_weights(dataset):
     """Calculate pos_weight for each task based on valid (non-NaN) samples."""
+    
+    y = torch.tensor(dataset.y, dtype=torch.float)
+
+    if y.ndim == 1:  # Single-label binary classification
+        return torch.tensor([compute_pos_weights_one_binary_task(y)], dtype=torch.float32)
+
     pos_weights = []
     
-    for task_idx in range(dataset.num_classes):
+    for task_idx in range(y.shape[1]):
         
         labels = torch.tensor(dataset.y[:, task_idx], dtype=torch.float)
         
@@ -29,6 +42,12 @@ def compute_pos_weights(dataset):
         pos_weights.append(pos_weight)
     
     return torch.tensor(pos_weights, dtype=torch.float32)
+
+def compute_pos_weights_one_binary_task(labels):
+    """Compute positive weight as N_neg / N_pos for BCEWithLogitsLoss."""
+    pos = (labels == 1).sum()
+    neg = (labels == 0).sum()
+    return neg / (pos + 1e-8)
 
 def compute_pos_weights_one_task(labels):
     # Extract valid labels for this task
@@ -139,46 +158,6 @@ def evaluate_model(model, loader, device, num_classes):
     else:
         roc_auc = roc_auc_score(all_labels, all_preds)
     return roc_auc
-
-# def evaluate_model_prediction(model, loader, device, original_prediction_y =None):
-#     '''
-#     Return Class probability of predicted class
-#     '''
-#     model.eval()
-#     preds_out = []
-#     preds_y = []
-    
-#     with torch.no_grad():
-#         for i,data in enumerate(loader):
-#             data = data.to(device)
-#             output, _ = model(data.x, data.edge_index, data.batch, data.smiles)
-#             predicted_class = torch.argmax(output.data, dim = 1)  # Get the index of the max log-probability
-#             if original_prediction_y is not None:
-#                 output_at_predicted_class = output[range(len(predicted_class)), original_prediction_y[i]]
-#             else:
-#                 output_at_predicted_class = output[range(len(predicted_class)), predicted_class]
-#                 preds_y.append(predicted_class)
-            
-#             preds_out.extend(output_at_predicted_class)
-#     return preds_out,preds_y
-
-
-# def get_model_prediction(model, loader, device):
-#     '''
-#     Return Class probability of predicted class
-#     '''
-#     model.eval()
-#     preds_out = []
-#     labels = []
-    
-#     with torch.no_grad():
-#         for i,data in enumerate(loader):
-#             data = data.to(device)
-#             output, _ = model(data.x, data.edge_index, data.batch, data.smiles)
-#             labels.extend(data.y)
-#             preds_out.extend(output)
-#     return preds_out, labels
-
 
 def get_masked_graphs(loader, motif_idx, lookup_dict):
     '''
@@ -302,66 +281,6 @@ def get_masked_graphs_from_list_for_each_motif(data_list, lookup_dict, motif_len
 
 
 
-
-# def get_masked_graphs_from_list_for_each_motif(data_list, lookup_dict, motif_lengths):
-#     """
-#     Checks the meaningfulness of each motif importance by masking out motifs.
-    
-#     Args:
-#         data_list (list): List of PyTorch Geometric data objects.
-#         lookup_dict (dict): A dictionary mapping SMILES strings to node-to-motif mappings.
-#         motif_lengths (dict): A dictionary mapping motif names to their respective lengths.
-
-#     Returns:
-#         dict: A dictionary where keys are indices of data and values are masked node features for each motif.
-#     """
-#     collect_data = {}
-    
-#     for data_i, data in enumerate(data_list):
-#         device = data.x.device
-
-#         # Initialize the dictionary for the current data
-#         collect_data[data_i] = {}
-        
-#         # Initialize a mask with all ones
-#         mask = torch.ones(data.x.size(0), device=device, dtype=torch.float32)
-
-#         smile = data.smiles
-#         if smile in lookup_dict:  # Ensure the SMILES exists in the lookup_dict
-#             node_to_motif = lookup_dict[smile]
-            
-#             # Iterate through each motif using motif_lengths
-#             motif_start = 0
-            
-#             while motif_start < len(node_to_motif)-1:
-#                 motif_name, m_idx = node_to_motif[motif_start]
-#                 print(smile,motif_start,motif_name)
-#                 if m_idx is None or motif_name not in motif_lengths:
-#                     motif_start += 1
-#                     continue
-                
-#                 # Determine the end index of the current motif
-#                 motif_end = motif_start + motif_lengths[motif_name]
-                
-#                 print(smile,motif_start,motif_name,motif_lengths[motif_name])
-                
-#                 # Get the indices corresponding to the motif
-#                 indices_to_zero = list(range(motif_start, motif_end))
-#                 print(motif_end)
-#                 if indices_to_zero:  # If there are any indices to zero out
-#                     indices_to_zero = torch.tensor(indices_to_zero, device=device)  # Convert to tensor
-#                     mask[indices_to_zero] = 0.0  # Zero out the selected indices
-
-#                 # Store the masked data.x in the collect_data dictionary
-#                 collect_data[data_i][m_idx] = data.x * mask.unsqueeze(1)
-                
-#                 # Move to the next motif
-#                 motif_start = motif_end
-#                 print("final",motif_start,motif_end)
-
-#     return collect_data
-
-
 def plot_distribution_displaced_topk(tensor, title, image_path, motif_list, colors=None):
     tensor = np.array(tensor)
     x, y = tensor[:, 0], tensor[:, 1]
@@ -456,120 +375,160 @@ def save_training_artifacts(image_files, dataset_name, output_dir):
     images = [Image.open(image) for image in image_files]
     images[0].save(f'{output_dir}/{dataset_name}.gif', save_all=True, append_images=images[1:], duration=500, loop=0)
 
-def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_loader, val_loader, device, config, output_dir, plot=False, motif_list=None, dataset_name='dataset', patience=10, delta=1e-4, ignore_unknowns = False, predictions = None, model_dir = None, train_mask_data = None, val_mask_data = None, test_mask_data = None, class_weights = None):
+    
+
+
+def log_memory_usage(epoch):
+    print(f"[Epoch {epoch}] RAM used: {psutil.Process().memory_info().rss / 1e9:.2f} GB")
+    print(f"[Epoch {epoch}] CUDA mem allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
+    print(f"[Epoch {epoch}] CUDA mem reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB")
+
+def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_loader, val_loader, device, config,
+                             output_dir, plot=False, motif_list=None, dataset_name='dataset', patience=10,
+                             delta=1e-4, ignore_unknowns=False, predictions=None, model_dir=None,
+                             train_mask_data=None, val_mask_data=None, test_mask_data=None,
+                             class_weights=None, scheduler=None, clip_grad_norm=False, max_grad_norm=2.0,
+                             smooth_window=5, min_epochs=0):
+
+
     train_losses, val_losses = [], []
     train_accs, val_accs = [], []
+    smoothed_val_losses = []
+    val_loss_queue = deque(maxlen=smooth_window)
     image_files = []
 
-    image_dir = f'./{output_dir}/epoch_artifacts_{dataset_name}/'
+    image_dir = f'{output_dir}/epoch_artifacts_{dataset_name}/'
     os.makedirs(image_dir, exist_ok=True)
-    
-    #check if model directory exists or use output dir
     if model_dir is None:
         model_dir = output_dir
 
     model.to(device)
+    best_smoothed_loss = float('inf')
+    best_val_acc = float('-inf')
+    best_loss_epoch = -1
+    best_acc_epoch = -1
+    best_train_loss = None
+    best_train_acc = None
+    epochs_without_improvement = 0
+    best_loss_model_path = os.path.join(output_dir, f"{dataset_name}_best_model_loss.pth")
+    best_acc_model_path = os.path.join(output_dir, f"{dataset_name}_best_model_acc.pth")
 
-    best_val_loss = float('inf')
-    lowest_fidelity = float('inf')
-    epochs_without_loss_improvement = 0
-    epochs_wihout_fidelity_improvement = 0
-    fidelity_flag = False
-    
-    #check if output_dir/dataset_name.csv exists
-    #if it exists: start epoch at csv column[Epoch] last row + 1
-    # Initialize starting epoch
-    start_epoch = 0
+    is_regression = isinstance(criterion, nn.MSELoss) and model.task_type == 'Regression'
+
+    # Load checkpoint if exists
     model_checkpoint_path = os.path.join(output_dir, "model_checkpoint.pth")
     optimizer_checkpoint_path = os.path.join(output_dir, "optimizer_checkpoint.pth")
     csv_path = os.path.join(output_dir, f"{dataset_name}.csv")
+    start_epoch = 0
 
-    # Check if the dataset.csv exists
     if os.path.exists(csv_path):
-        # Read the CSV file
         df = pd.read_csv(csv_path)
-
-        # Check if the CSV has any rows
         if not df.empty:
-            # Get the last epoch value
             start_epoch = int(df["Epoch"].iloc[-1])
+        model.load_state_dict(torch.load(model_checkpoint_path))
+        optimizer.load_state_dict(torch.load(optimizer_checkpoint_path))
 
-        # Load model and optimizer states
-        model_state = torch.load(model_checkpoint_path)
-        model.load_state_dict(model_state)
-
-        optimizer_state = torch.load(optimizer_checkpoint_path)
-        optimizer.load_state_dict(optimizer_state)
-        
-    print(f"Starting at epoch {start_epoch+1}")
+    print(f"Starting at epoch {start_epoch + 1}")
 
     for epoch in range(start_epoch, num_epochs):
         model.train()
-        train_loss, mask_loss           = train_one_epoch(model, 
-                                                      criterion, 
-                                                      optimizer, 
-                                                      train_loader, 
-                                                      device, 
-                                                      config, 
-                                                      ignore_unknowns= ignore_unknowns,
-                                                     class_weights = class_weights)
-        # pdb.set_trace()
+        torch.cuda.empty_cache()
+        gc.collect()
+
+        train_loss, mask_loss = train_one_epoch(
+            model, criterion, optimizer, train_loader, device, config,
+            ignore_unknowns=ignore_unknowns, class_weights=class_weights,
+            clip_grad_norm=clip_grad_norm, max_grad_norm=max_grad_norm
+        )
+
+        val_loss, train_acc, val_acc, fidelity = validate_model(
+            model, criterion, val_loader, device, train_loader, predictions
+        )
+
         train_losses.append(train_loss)
-        val_loss, train_acc, val_acc, fidelity = validate_model(model, criterion, val_loader, device, train_loader, predictions)
         val_losses.append(val_loss)
         train_accs.append(train_acc)
         val_accs.append(val_acc)
 
-        
+        val_loss_queue.append(val_loss)
+        smoothed_loss = np.mean(val_loss_queue)
+        smoothed_val_losses.append(smoothed_loss)
+
+        if scheduler:
+            scheduler.step(smoothed_loss)
 
         if plot and hasattr(model, 'motif_params'):
             masked_dataset = [val_mask_data]
             if model.motif_params.shape[1] == 1:
-                logit_diff = plot_and_save_distribution(model, epoch, image_dir, motif_list, image_files, masked_dataset)
+                logit_diff = plot_and_save_distribution(
+                    model, epoch, image_dir, motif_list, image_files, masked_dataset)
             else:
-                logit_diff = plot_and_save_distribution_multi_class(model, epoch, image_dir, motif_list, image_files, masked_dataset)
-            print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc, output_dir, dataset_name, logit_diff = logit_diff, params = model.motif_params.detach().cpu())
-            
+                logit_diff = plot_and_save_distribution_multi_class(
+                    model, epoch, image_dir, motif_list, image_files, masked_dataset)
+            print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc,
+                                output_dir, dataset_name, logit_diff=logit_diff,
+                                params=model.motif_params.detach().cpu())
         else:
-            print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc, output_dir, dataset_name)
-            
-        torch.save(model.state_dict(), f'{output_dir}/model_checkpoint.pth')
-        torch.save(optimizer.state_dict(), f'{output_dir}/optimizer_checkpoint.pth')
-            
+            print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc,
+                                output_dir, dataset_name)
 
-        # Early stopping logic
-        loss_flag, best_val_loss, epochs_without_loss_improvement = early_stopping(val_loss, 
-                                                                              best_val_loss, 
-                                                                              delta, 
-                                                                              patience, 
-                                                                              epochs_without_loss_improvement, 
-                                                                              model,
-                                                                              model_dir, 
-                                                                              dataset_name)
-        if predictions is not None:
-            pdb.set_trace()
-            fidelity_flag, lowest_fidelity, epochs_wihout_fidelity_improvement = early_stopping_explainer(fidelity, 
-                                                                                       lowest_fidelity, 
-                                                                                       delta, 
-                                                                                       patience, 
-                                                                                       epochs_wihout_fidelity_improvement, 
-                                                                                       model,
-                                                                                       model_dir, 
-                                                                                       dataset_name)
-            
-        if loss_flag or fidelity_flag:
+        # Save latest model
+        torch.save(model.state_dict(), model_checkpoint_path)
+        torch.save(optimizer.state_dict(), optimizer_checkpoint_path)
+
+        # Save best model based on smoothed validation loss
+        if epoch >= min_epochs and smoothed_loss < best_smoothed_loss - delta:
+            best_smoothed_loss = smoothed_loss
+            best_loss_epoch = epoch
+            best_train_loss = train_loss
+            torch.save(model.state_dict(), best_loss_model_path)
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+
+        # Save best model based on validation accuracy or MAE (lower is better)
+        if epoch >= min_epochs:
+            if is_regression:
+                if val_acc < best_val_acc or best_val_acc == float('-inf'):
+                    best_val_acc = val_acc  # here val_acc is actually MAE
+                    best_acc_epoch = epoch
+                    best_train_acc = train_acc
+                    torch.save(model.state_dict(), best_acc_model_path)
+            else:
+                if val_acc > best_val_acc:
+                    best_val_acc = val_acc
+                    best_acc_epoch = epoch
+                    best_train_acc = train_acc
+                    torch.save(model.state_dict(), best_acc_model_path)
+
+        if epochs_without_improvement >= patience:
+            print(f"Early stopping triggered at epoch {epoch + 1}")
             break
-            
-        
 
-    # if plot and hasattr(model, 'motif_params'):
-    #     save_training_artifacts(image_files, dataset_name, output_dir)
-    #     path = pathlib.Path(image_dir)
-    #     shutil.rmtree(path)
+        if epoch % 5 == 0:
+            torch.cuda.empty_cache()
+            gc.collect()
+
+        # log_memory_usage(epoch)
+
+    # Write best epoch info to CSV file
+    csv_output_path = os.path.join(output_dir, f"{dataset_name}_best_epochs.csv")
+    with open(csv_output_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Metric", "Best Epoch", "Validation Value", "Training Value"])
+        writer.writerow(["Loss", best_loss_epoch, f"{best_smoothed_loss:.6f}", f"{best_train_loss:.6f}"])
+        if is_regression:
+            writer.writerow(["MAE", best_acc_epoch, f"{best_val_acc:.6f}", f"{best_train_acc:.6f}"])
+        else:
+            writer.writerow(["Accuracy", best_acc_epoch, f"{best_val_acc:.6f}", f"{best_train_acc:.6f}"])
+
+    if plot and hasattr(model, 'motif_params'):
+        save_training_artifacts(image_files, dataset_name, output_dir)
+        shutil.rmtree(pathlib.Path(image_dir))
 
     return train_losses, val_losses, train_accs, val_accs
 
-def train_one_epoch(model, criterion, optimizer, train_loader, device, config, noise_factor = 0.0, ignore_unknowns = False, class_weights = None):
+def train_one_epoch(model, criterion, optimizer, train_loader, device, config, noise_factor = 0.0, ignore_unknowns = False, class_weights = None, clip_grad_norm=False, max_grad_norm=2.0):
     '''
     Main training function
     '''
@@ -622,6 +581,10 @@ def train_one_epoch(model, criterion, optimizer, train_loader, device, config, n
             running_loss_mask.append(reg_loss.item())
         # pdb.set_trace()
         loss.backward()
+        
+        if clip_grad_norm:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
+        
         # torch.nn.utils.clip_grad_norm_(model.parameters(), 2.0)
         optimizer.step()
 

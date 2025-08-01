@@ -1,4 +1,4 @@
-
+import CONSTANTS
 import pdb
 import torch
 from torch_geometric.loader import DataLoader
@@ -16,10 +16,11 @@ import json
 import os
 import csv
 # Training the model and plotting the losses
-from Utils_Train import train_and_evaluate_model, remove_bad_mols, evaluate_model, mae, rmse
+from Utils_Train import train_and_evaluate_model, remove_bad_mols, evaluate_model, mae, rmse, compute_pos_weights
 from Utils_plot import plot_losses
 from Utils_params import save_csv_motif_importance
-
+from Utils_model import compute_deg
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 EXPERIMENT_RESULTS = {}
@@ -37,27 +38,28 @@ torch.manual_seed(seed)
 date_tag = args.date_tag
 dataset_name = args.dataset_name
 
-
+# We dont need these during Vvanilla computation but use it to create dataloader
 lookup, motif_list, motif_counts, motif_lengths, motif_class_count, graph_to_motifs, test_data_lookup, test_graph_to_motifs, train_mask_data, val_mask_data, test_mask_data = get_setup_files_with_folds(dataset_name, date_tag, args.fold, args.algorithm)
 
-dataset_column_dict = {'Mutagenicity':['Mutagenicity'], 
-                       'hERG':['hERG'], 
-                       'BBBP':['BBBP'],
-                       'Lipophilicity':['Lipophilicity'],
-                       'esol':['measured log solubility in mols per litre']
-                      }
+if CONSTANTS.DATASET_TYPE[args.dataset_name] == 'BinaryClass':
+    num_classes = 2
+elif CONSTANTS.DATASET_TYPE[args.dataset_name] == 'Regression':
+    num_classes = 1
+else:
+    num_classes = len(label_col)
+    raise Exception("Use Muliti Label training code")
 
 
-if args.task_type == 'Regression':
+if CONSTANTS.DATASET_TYPE[args.dataset_name] == 'Regression':
     # Access training and validation data
-    training_data = MolDataset(root=".", split='training',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[args.dataset_name], normalize = True, mean = None, std = None, lookup = lookup)
-    validation_data = MolDataset(root=".", split='valid',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[args.dataset_name], normalize = True, mean = training_data.mean, std = training_data.std, lookup = lookup)
-    test_data = MolDataset(root=".", split='test',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[args.dataset_name], normalize = True, mean = training_data.mean, std = training_data.std, lookup = test_data_lookup)
+    training_data = MolDataset(root=".", split='training',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], normalize = True, mean = None, std = None, lookup = lookup, num_classes = num_classes)
+    validation_data = MolDataset(root=".", split='valid',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], normalize = True, mean = training_data.mean, std = training_data.std, lookup = lookup, num_classes = num_classes)
+    test_data = MolDataset(root=".", split='test',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], normalize = True, mean = training_data.mean, std = training_data.std, lookup = test_data_lookup, num_classes = num_classes)
     
-elif args.task_type == 'BinaryClass':
-    training_data = MolDataset(root=".", split='training',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[args.dataset_name], normalize = False, lookup = lookup)
-    validation_data = MolDataset(root=".", split='valid',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[args.dataset_name], normalize = False, lookup = lookup)
-    test_data = MolDataset(root=".", split='test',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[args.dataset_name], normalize = False, lookup = test_data_lookup)
+elif CONSTANTS.DATASET_TYPE[args.dataset_name] == 'BinaryClass':
+    training_data = MolDataset(root=".", split='training',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], normalize = False, lookup = lookup, num_classes = num_classes)
+    validation_data = MolDataset(root=".", split='valid',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], normalize = False, lookup = lookup, num_classes = num_classes)
+    test_data = MolDataset(root=".", split='test',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], normalize = False, lookup = test_data_lookup, num_classes = num_classes)
     
 else:
     input("Only Regression and binary classification supported in a single channel")
@@ -93,7 +95,8 @@ if config["model_type"] == "Vanilla":
                       num_layers = config["num_mp_layers"],
                       layer_type = config["layer_type"],
                       use_explainer=False,
-                      task_type = args.task_type)
+                      task_type = args.task_type,
+                      deg = compute_deg(train_loader))
     
 elif config["model_type"] == "SingleChannel":
     params_motif_x_class = torch.full((len(motif_list), 1), args.base_importance).to(device)
@@ -106,7 +109,8 @@ elif config["model_type"] == "SingleChannel":
                       motif_params = params_motif_x_class,
                       lookup = lookup,
                       task_type = args.task_type,
-                      test_lookup = test_data_lookup)
+                      test_lookup = test_data_lookup,
+                      deg = compute_deg(train_loader))
     
 else:
     '''
@@ -132,15 +136,21 @@ else:
         {'params':model.parameters()}
     ], config["lr"])
 
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+
+    
 # crit = torch.nn.CrossEntropyLoss()
 if args.task_type =='Regression':
     crit = torch.nn.MSELoss()
+    class_weights = None
 else:
     #Binary Classification
     crit = torch.nn.BCEWithLogitsLoss()
+    class_weights = compute_pos_weights(training_data)
 
 # vanilla_model.use_ones = False
-model_path = f"/explainer/{dataset_name}_1weighted_best_model.pth"
+# model_path = f"/explainer/{dataset_name}_1weighted_best_model.pth"
+model_path = f"/explainer/{dataset_name}_best_model_acc.pth"
 
 final_results_path = f"{output_dir}/{dataset_name}_classification_result.json"
 
@@ -150,6 +160,7 @@ if os.path.isfile(final_results_path):
     model_state = torch.load(output_dir+model_path)
     model.load_state_dict(model_state)
 else:
+    os.makedirs(output_dir+"/explainer/", exist_ok=True)
     train_losses, val_losses, train_accs, val_accs = train_and_evaluate_model(model, 
                                                                               crit,optimizer,config["epochs"], 
                                                                               train_loader,val_loader, device, config, 
@@ -161,7 +172,10 @@ else:
                                                                               train_mask_data = (train_mask_data, training_data),
                                                                               val_mask_data = (val_mask_data, validation_data), 
                                                                               test_mask_data =(test_mask_data, test_data),
-                                                                              class_weights = None)    
+                                                                              class_weights = class_weights,
+                                                                              patience = args.patience,
+                                                                              scheduler = scheduler,
+                                                                              clip_grad_norm=True)    
     image_path = output_dir+f"/explainer/{dataset_name}_losses.png"
     plot_losses(train_losses, val_losses, dataset_name, image_path)
     image_path = output_dir+f"/explainer/{dataset_name}_roc-auc.png"
@@ -186,15 +200,17 @@ print("results:",EXPERIMENT_RESULTS)
 # Convert dictionary to DataFrame and then export as JSON
 pd.DataFrame([EXPERIMENT_RESULTS]).to_json(
     f"{output_dir}/{dataset_name}_classification_result.json", orient='records', lines=True
-)
-
+)    
+    
 # Explanation impact visualization
 if hasattr(model, 'motif_params'):
-    save_csv_motif_importance(model, motif_list, [(test_mask_data, test_data)], f"{output_dir}/{dataset_name}_explanation_result_with_test.csv")
-    save_csv_motif_importance(model, motif_list, [(val_mask_data, validation_data)], f"{output_dir}/{dataset_name}_explanation_result_with_validation.csv")
-    save_csv_motif_importance(model, motif_list, [(train_mask_data, training_data)], f"{output_dir}/{dataset_name}_explanation_result_with_train.csv")
+    test_file = f"{output_dir}/{dataset_name}_explanation_result_with_test.csv"
+    val_file = f"{output_dir}/{dataset_name}_explanation_result_with_validation.csv"
+    train_file = f"{output_dir}/{dataset_name}_explanation_result_with_train.csv"
 
-    
-
-    
-    
+    if not os.path.exists(test_file):
+        save_csv_motif_importance(model, motif_list, [(test_mask_data, test_data)], test_file)
+    if not os.path.exists(val_file):
+        save_csv_motif_importance(model, motif_list, [(val_mask_data, validation_data)], val_file)
+    if not os.path.exists(train_file):
+        save_csv_motif_importance(model, motif_list, [(train_mask_data, training_data)], train_file)

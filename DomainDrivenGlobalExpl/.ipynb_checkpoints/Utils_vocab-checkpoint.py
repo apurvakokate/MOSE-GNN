@@ -98,37 +98,87 @@ def get_lookup_tables(training_data, validation_data, test_data, algorithm):
 
 def reindex_data(data_lookup, motif_list, value_counts, least_count, is_test=False):
     graph_to_motifs = defaultdict(set)
-    
-    node_coverages = []
 
     for graph_str, graph_data in data_lookup.items():
-        covered_nodes = 0
         total_nodes = len(graph_data)
         for node_id, motif_str in graph_data.items():
             if is_test:
                 try:
                     data_lookup[graph_str][node_id] = (motif_str, motif_list.index(motif_str))
                     graph_to_motifs[graph_str].add(motif_list.index(motif_str))
-                    covered_nodes += 1
                 except:
                     data_lookup[graph_str][node_id] = (motif_str, None)
             elif value_counts[motif_str] > least_count:
                 data_lookup[graph_str][node_id] = (motif_str, motif_list.index(motif_str))
                 graph_to_motifs[graph_str].add(motif_list.index(motif_str))
-                covered_nodes += 1
             else:
                 data_lookup[graph_str][node_id] = (motif_str, None)
-        try:
-            mol = Chem.MolFromSmiles(graph_str)
+        
+    return graph_to_motifs
 
-            # get feature dimensions
-            n_nodes = mol.GetNumAtoms()
-            assert total_nodes == n_nodes
-            node_coverages.append(covered_nodes / total_nodes)
-        except:
-            pdb.set_trace()
+def compute_node_coverage(data_lookup):
+    """
+    Compute the number of nodes across all graphs that have a valid motif index.
+    Returns: total_covered_nodes (int)
+    """
+    node_coverages = []
+    for node2motif in data_lookup.values():
+        covered = 0
+        total = 0
+        for motif_str, idx in node2motif.values():
+            total += 1
+            if idx is not None:
+                covered += 1
+        node_coverages.append(covered / total)
+    return sum(node_coverages) / len(node_coverages)
+    
 
-    return sum(node_coverages) / len(node_coverages) , graph_to_motifs
+def reindex_data_lookup_by_class(data_lookup, motif_list, value_counts, class_id, cutoff, is_test=False):
+    """
+    Reindex data_lookup filtering motifs by class-specific counts.
+    `value_counts` is a dict: motif_str -> {0: count0, 1: count1}
+    Returns: graph_to_motifs (dict: graph_str -> set of motif indices)
+    """
+    motif_to_idx = {m: i for i, m in enumerate(motif_list)}
+    graph_to_motifs = defaultdict(set)
+
+    for graph_str, node2motif in data_lookup.items():
+        for node_id, motif_str in node2motif.items():
+            idx = motif_to_idx.get(motif_str)
+            if data_lookup[graph_str][node_id][1] is not None:
+                #Check if minority threshold applies
+                if is_test:
+                    data_lookup[graph_str][node_id] = (motif_str, idx)
+                    if idx is not None:
+                        graph_to_motifs[graph_str].add(idx)
+                else:
+                    counts_by_label = value_counts.get(motif_str, {})
+                    cnt = counts_by_label.get(class_id, 0)
+                    if cnt >= cutoff:
+                        data_lookup[graph_str][node_id] = (motif_str, idx)
+                        graph_to_motifs[graph_str].add(idx)
+                    else:
+                        data_lookup[graph_str][node_id] = (motif_str, None)
+    return graph_to_motifs
+
+def simplified_reindex_data(data_lookup, motif_list):
+    '''
+    Take an already-filtered motif_list, assign each motif an index,
+    and rewrite data_lookup[node] = (motif, idx_or_None).
+    Returns graph_to_motifs: graph_str -> set(idx).
+    '''
+    motif_to_idx = {m:i for i,m in enumerate(motif_list)}
+    graph_to_motifs = defaultdict(set)
+
+    for g, node2motif in data_lookup.items():
+        for nid, val in node2motif.items():
+            motif_str = val if isinstance(val, str) else val[0]
+            idx = motif_to_idx.get(motif_str)  # None if not in motif_list
+            data_lookup[g][nid] = (motif_str, idx)
+            if idx is not None:
+                graph_to_motifs[g].add(idx)
+
+    return graph_to_motifs
             
 def mol_with_atom_index(mol):
     '''
@@ -147,6 +197,7 @@ def get_mol_with_index(smiles, set_atom_index = True):
     C1C2C3C4
     '''
     mol = Chem.MolFromSmiles(smiles)
+    mol = sanitize(mol)
     if mol is None:
         return None
     Chem.Kekulize(mol)
@@ -203,7 +254,7 @@ def fragment_molecule(molecule, recursive=True):
     """Break the molecule into fragments using BRICS."""
     
     if recursive:
-        pbonds = list(FindrBRICSBonds(molecule))
+        pbonds = list(FindreBRICSBonds(molecule))
         ppieces3 = BreakrBRICSBonds(molecule, pbonds)
         brics_fragments = Chem.GetMolFrags(ppieces3, asMols=True)
         if brics_fragments is not None:
@@ -217,6 +268,36 @@ def fragment_molecule(molecule, recursive=True):
         # ppieces3 = BRICS.BreakBRICSBonds(molecule, pbonds)
         fragments = Chem.GetMolFrags(ppieces3, asMols=True)
     return fragments
+
+def fragment_molecule_with_bond_info(molecule, recursive=True):
+    """Break the molecule into fragments using BRICS and return fragments + bond info."""
+    
+    if recursive:
+        pbonds = list(FindreBRICSBonds(molecule))
+        ppieces3 = BreakrBRICSBonds(molecule, pbonds)
+        brics_fragments = Chem.GetMolFrags(ppieces3, asMols=True, sanitizeFrags=True, fragsMolAtomMapping=True)
+        if brics_fragments is not None:
+            fragments, atom_lists = zip(*brics_fragments)  # (Mol, atom_indices)
+            bond_lists = [get_fragment_bonds(molecule, atom_idx) for atom_idx in atom_lists]
+        else:
+            fragments, atom_lists, bond_lists = [], [], []
+    else:
+        pbonds = list(FindreBRICSBonds(molecule))
+        ppieces3 = BreakrBRICSBonds(molecule, pbonds)
+        fragments, atom_lists = Chem.GetMolFrags(ppieces3, asMols=True, sanitizeFrags=True, fragsMolAtomMapping=True)
+        bond_lists = [get_fragment_bonds(molecule, atom_idx) for atom_idx in atom_lists]
+    
+    return fragments, atom_lists, bond_lists
+
+def get_fragment_bonds(original_mol, atom_indices):
+    """Return bond indices from original molecule for a given fragment atom list."""
+    bond_indices = []
+    for bond in original_mol.GetBonds():
+        a1, a2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        if a1 in atom_indices and a2 in atom_indices:
+            bond_indices.append(bond.GetIdx())
+    return bond_indices
+
 
 def extract_clique_fragments(mol, cliques):
 
@@ -407,7 +488,10 @@ def add_fragment(fragment, molecule_smiles, data, lookup, is_test=False):
     #     lookup.add_entry_test(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
     # else:
     #     lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.item())
-    data_label_count = data.y.squeeze().shape[0]
+    try:
+        data_label_count = data.y.squeeze().shape[0]
+    except IndexError:
+        data_label_count = data.y.shape[0]
         
     if is_test:
         if data_label_count == 1:
@@ -420,6 +504,21 @@ def add_fragment(fragment, molecule_smiles, data, lookup, is_test=False):
         else:
             lookup.add_entry(molecule_smiles, fragment_smiles, atom_nums, data.y.tolist())
 
+            
+def process_dataset_with_bond_info(dataset, lookup, is_test=False, algorithm='BRICS'):
+    """Processes a dataset (train/test) and fragments each molecule.
+    ["RBRICS", "MGSSL", "Energy_100", "Energy_200"]"""
+    if algorithm == 'RBRICS':
+        for i, data in enumerate(dataset):
+            molecule_smiles = data["smiles"]
+            molecule = process_molecule(molecule_smiles, True)
+            all_fragments, atom_list, bond_list = fragment_molecule_with_bond_info(molecule, recursive=True)
+            for fragment in all_fragments:
+                #Todo add min length
+                add_fragment(fragment, molecule_smiles, data, lookup, is_test)
+    else:
+        raise Exception(f'Incorrect Algorithm {algorithm}')
+    
 
 def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
     """Processes a dataset (train/test) and fragments each molecule.
@@ -432,25 +531,6 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
             for fragment in all_fragments:
                 #Todo add min length
                 add_fragment(fragment, molecule_smiles, data, lookup, is_test)
-#     if algorithm == 'RBRICS':
-#         for i, data in enumerate(dataset):
-#             molecule_smiles = data["smiles"]
-#             to_process = [molecule_smiles]
-#             original_mol = True
-
-#             while to_process:
-#                 # input(to_process)
-#                 smiles_string = to_process.pop()
-#                 molecule = process_molecule(smiles_string, original_mol)
-#                 original_mol = False
-
-#                 all_fragments = fragment_molecule(molecule)
-#                 for fragment in all_fragments:
-#                     #Todo add min length
-#                     fragment_smiles = handle_fragment(fragment, molecule_smiles, data, lookup, is_test)
-#                     if fragment_smiles:
-#                         # print("here",fragment_smiles)
-#                         to_process.append(fragment_smiles)
     elif algorithm == 'BRICS':
         for i, data in enumerate(dataset):
             molecule_smiles = data["smiles"]
@@ -469,7 +549,10 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
             for i,c in enumerate(cliques):
                 cmol = get_clique_mol(mol_mgssl, c)
                 fragment_smiles = get_smiles(cmol)
-                data_label_count = data.y.squeeze().shape[0]
+                try:
+                    data_label_count = data.y.squeeze().shape[0]
+                except IndexError:
+                    data_label_count = data.y.shape[0]
                 if is_test:
                     if data_label_count == 1:
                         lookup.add_entry_test(molecule_smiles, fragment_smiles, c, data.y.item())
@@ -480,27 +563,8 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
                         lookup.add_entry(molecule_smiles, fragment_smiles, c, data.y.item())
                     else:
                         lookup.add_entry(molecule_smiles, fragment_smiles, c, data.y.tolist())
-            # pbonds = list(FindrBRICSBonds(molecule))
-            # ppieces3 = BreakrBRICSBonds(molecule, pbonds)
-            # clique = Chem.GetMolFrags(ppieces3, asMols=False)
-            # all_fragments = extract_clique_fragments(molecule,clique)
-            # for fragment in all_fragments:
-            #     #Todo add min length
-            #     add_fragment(fragment, molecule_smiles, data, lookup, is_test)
-            #     # fragment_smiles = handle_fragment(fragment, molecule_smiles, data, lookup, is_test)
     else:
-        parts = algorithm.split("_")
-        if parts[0] == "Energy":
-            for i, data in enumerate(dataset):
-                molecule_smiles = data["smiles"]
-                molecule = process_molecule(molecule_smiles, original_mol=True)
-                all_fragments = energy_based_fragmentation(molecule, energy_threshold = int(parts[1]))[0]
-                for fragment in all_fragments:
-                    #Todo add min length
-                    add_fragment(fragment, molecule_smiles, data, lookup, is_test)
-                    # fragment_smiles = handle_fragment(fragment, molecule_smiles, data, lookup, is_test)
-        else:
-            raise Exception(f'Incorrect Algorithm {algorithm}')
+        raise Exception(f'Incorrect Algorithm {algorithm}')
             
 def get_smiles(mol):
     return Chem.MolToSmiles(mol, kekuleSmiles=True)
@@ -556,6 +620,7 @@ class MotifDictionary:
         self.motifs_length = defaultdict()
         self.motifs_class = defaultdict(dict)
         self.test_motifs_length = defaultdict()
+        self.test_motifs_class = defaultdict(dict)
 
     def add_entry(self, graph_str, motif_str, nodes, class_id):
         '''
@@ -579,6 +644,7 @@ class MotifDictionary:
                 self.test_data[graph_str][element]= motif_str 
                 
         self.test_motifs_length[motif_str]= len(nodes) - nodes.count(None)
+        self.test_motifs_class[motif_str][graph_str] = class_id
 
     def query_by_graph(self, graph_str):
         '''
@@ -592,6 +658,11 @@ class MotifDictionary:
         '''
         return self.test_data.get(graph_str, {})
     
+    def save_motifs(self):
+        # --- new: keep a pristine backup of the full vocab ---
+        self._backup_motifs_length = self.motifs_length.copy()
+        self._backup_motifs_class  = self.motifs_class.copy()
+    
     def remove_motifs(self, list_of_motifs_to_remove):
         '''
         Removes less frequent motifs
@@ -599,6 +670,17 @@ class MotifDictionary:
         for key in list_of_motifs_to_remove:
             self.motifs_length.pop(key)
             self.motifs_class.pop(key)
+            
+    def readd_motifs(self, list_of_motifs_to_add):
+        """
+        Restores motifs (and their metadata) that were previously removed,
+        pulling from the backups.
+        """
+        for motif in list_of_motifs_to_add:
+            # only re-add if it was in the original backup
+            if motif in self._backup_motifs_length:
+                self.motifs_length[motif] = self._backup_motifs_length[motif]
+                self.motifs_class[motif]  = self._backup_motifs_class[motif]
 
     def get_all_unique_motif(self):
         '''
