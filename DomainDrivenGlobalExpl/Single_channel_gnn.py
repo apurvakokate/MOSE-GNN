@@ -9,6 +9,35 @@ from Utils_Train import evaluate_model
 from Utils_model import create_conv_layers 
 import pdb
 class GNNModel(nn.Module): 
+    """Graph Neural Network with optional motif-based explainer weights.
+
+    Parameters
+    ----------
+    input_dim : int
+        Node feature dimensionality.
+    output_dim : int
+        Number of classes (for classification) or output units.
+    hidden_channels : int
+        Hidden dimensionality used across convolution and MLP layers.
+    num_layers : int
+        Number of message-passing layers.
+    layer_type : str
+        Convolution layer type understood by `create_conv_layers`.
+    use_explainer : bool, optional (default: False)
+        If True, multiply node features by learnable per-motif weights before
+        message passing and use these weights again during readout.
+    motif_params : Optional[Tensor]
+        Shape: [num_motifs, 1] or [num_motifs]. Values will be learned
+        (sigmoid-squashed) as node weights for nodes that map to each motif.
+    lookup : Optional[dict]
+        (Reserved) Mapping used elsewhere; stored for completeness.
+    test_lookup : Optional[dict]
+        (Reserved) Mapping used for test-time motifs; stored for completeness.
+    task_type : str, optional (default: "BinaryClass")
+        Task identifier; currently unused but kept for compatibility.
+    deg : Optional[Tensor]
+        Degree histogram for PNA or similar conv types.
+    """
     def __init__(self,input_dim, output_dim, hidden_channels, num_layers, layer_type, use_explainer=False,
                 motif_params=None, lookup=None, task_type= 'BinaryClass', test_lookup=None, deg=None):
         super().__init__()
@@ -27,15 +56,13 @@ class GNNModel(nn.Module):
             self.use_ones = True
         else:
             self.use_ones = False
-            
-            self.num_params = motif_params.size(0)
             self.motif_params = nn.Parameter(motif_params, requires_grad=True)
             self.lookup = lookup
             self.test_lookup = test_lookup
         
 
             
-    def motif_to_node_params(self, node_to_motifs, num_nodes, batch, device, ignore_unknowns = False):
+    def motif_to_node_params(self, node_to_motifs, num_nodes, device, ignore_unknowns = False):
         # torch.set_printoptions(threshold=10_000)
         # input(node_to_motifs)
         if ignore_unknowns:
@@ -73,7 +100,7 @@ class GNNModel(nn.Module):
             
 
         else:
-            node_weights = self.motif_to_node_params(node_to_motifs, x.shape[0], batch, x.device, ignore_unknowns)
+            node_weights = self.motif_to_node_params(node_to_motifs, x.shape[0], x.device, ignore_unknowns)
             
             node_weights =  node_weights.to(edge_index.device)
             

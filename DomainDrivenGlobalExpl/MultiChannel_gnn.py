@@ -10,6 +10,14 @@ from Utils_model import create_conv_layers
 import pdb
 
 class GNNModel(nn.Module): 
+    """Multi-label GNN with per-class conv/MLP stacks and optional motif explainer.
+
+    Logic preserved from the original implementation.
+    - Each class `c` has its own conv stack `convs[str(c)]` and MLP `lin1/lin2`.
+    - `motif_params` is expected to have shape [num_motifs, num_classes].
+    - When `use_explainer=False`, node weights are effectively all-ones.
+    - Outputs are concatenated across classes to shape [num_graphs, num_classes].
+    """
     def __init__(self,input_dim, output_dim, hidden_channels, num_layers, layer_type, use_explainer=False,
                 motif_params=None, lookup=None, test_lookup=None, task_type = 'MultiLabel'):
         super().__init__()
@@ -34,13 +42,11 @@ class GNNModel(nn.Module):
             self.use_ones = True
         else:
             self.use_ones = False
-            
-            self.num_params = motif_params.size(0)
             self.motif_params = nn.Parameter(motif_params, requires_grad=True)
             self.lookup = lookup
             self.test_lookup = test_lookup
 
-    def motif_to_node_params(self, node_to_motifs, num_nodes, batch, device, ignore_unknowns = False):
+    def motif_to_node_params(self, node_to_motifs, num_nodes, device, ignore_unknowns = False):
         
         if ignore_unknowns:
             param_tensor = torch.full((node_to_motifs.shape[0], self.num_classes), 0.0, device=device)
@@ -68,6 +74,7 @@ class GNNModel(nn.Module):
             # x.to(edge_index.device)
             
             all_output = ()
+            self.all_readout_output = []
             
             for channel in range(self.num_classes):
 
@@ -75,16 +82,22 @@ class GNNModel(nn.Module):
                 x_channel = self.embedding(x, edge_index, channel)
                 #Graph Embedding
                 x_channel = global_add_pool(x_channel, batch)
+                self.all_readout_output.append(x_channel)
                 x_channel = self.classification(x_channel, channel)
                 
                 all_output = all_output + (x_channel,)
+                
+            self.readout_output = torch.stack(self.all_readout_output, dim=0)
+            pdb.set_trace()
 
         else:
-            node_weights = self.motif_to_node_params(node_to_motifs, x.shape[0], batch, x.device, ignore_unknowns)
+            node_weights = self.motif_to_node_params(node_to_motifs, x.shape[0], x.device, ignore_unknowns)
             
             node_weights =  node_weights.to(edge_index.device)
             
             all_output = ()
+            self.all_readout_output = []
+            
             
             for channel in range(self.num_classes):
             
@@ -93,6 +106,8 @@ class GNNModel(nn.Module):
 
                 
                 all_output = all_output + (x_channel,)
+                
+            self.readout_output = torch.stack(self.all_readout_output, dim=0)
             
         return torch.cat(all_output, dim=1), node_weights
     
@@ -104,6 +119,8 @@ class GNNModel(nn.Module):
 
         # Readout phase: global mean pooling
         x_cls = global_add_pool(x_cls* node_weights[:,class_id].unsqueeze(-1), batch)
+        
+        self.all_readout_output.append(x_cls)
         
         # Classification
         return self.classification(x_cls, class_id)
