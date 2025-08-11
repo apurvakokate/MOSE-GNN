@@ -41,47 +41,54 @@ torch.manual_seed(seed)
 date_tag = args.date_tag
 dataset_name = args.dataset_name
 
-
+# We dont need these during Vanilla computation but use it to create dataloader
 lookup, motif_list, motif_counts, motif_lengths, motif_class_count, graph_to_motifs, test_data_lookup, test_graph_to_motifs, train_mask_data, val_mask_data, test_mask_data = get_setup_files_with_folds(dataset_name, date_tag, args.fold, args.algorithm)
 
-dataset_column_dict = {'tox21': ['NR-AR', 'NR-AR-LBD','NR-AhR','NR-Aromatase','NR-ER','NR-ER-LBD', 
-                                 'NR-PPAR-gamma', 'SR-ARE','SR-ATAD5', 'SR-HSE','SR-MMP','SR-p53']}
+# dataset_column_dict = {'tox21': ['NR-AR', 'NR-AR-LBD','NR-AhR','NR-Aromatase','NR-ER','NR-ER-LBD', 
+#                                  'NR-PPAR-gamma', 'SR-ARE','SR-ATAD5', 'SR-HSE','SR-MMP','SR-p53']}
+
+if CONSTANTS.DATASET_TYPE[args.dataset_name] == 'MultiTask':
+    num_classes = len(label_col)
+else:
+    raise Exception("Use Single Channel training code")
 
 
-training_data = MolDataset(root=".", split='training',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], normalize = False, lookup = lookup)
-validation_data = MolDataset(root=".", split='valid',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], normalize = False, lookup = lookup)
-test_data = MolDataset(root=".", split='test',csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", label_col = dataset_column_dict[dataset_name], normalize = False, lookup = test_data_lookup)
+training_data = MolDataset(root=".", 
+                           split='training',
+                           csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", 
+                           label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], 
+                           normalize = False, 
+                           lookup = lookup, 
+                           num_classes = num_classes)
+validation_data = MolDataset(root=".", 
+                             split='valid',\
+                             csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", 
+                             label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], 
+                             normalize = False, 
+                             lookup = lookup, 
+                             num_classes = num_classes)
+test_data = MolDataset(root=".", 
+                       split='test',
+                       csv_file=f"datasets/FOLDS/{dataset_name}_{args.fold}.csv", 
+                       label_col = CONSTANTS.DATASET_COLUMN[args.dataset_name], 
+                       normalize = False, 
+                       lookup = test_data_lookup, 
+                       num_classes = num_classes)
 
 # Removing molecules that cant be parsed by RDkit
 training_data = remove_bad_mols(training_data)
 validation_data = remove_bad_mols(validation_data)
 test_data = remove_bad_mols(test_data)
 
-config = {"model_type": args.model_type,
-          "num_mp_layers": args.num_mp_layers,
-          "hidden":args.hidden,
-          "epochs":args.epochs,
-          "lr": args.lr,
-          "expl_lr": args.expl_lr,
-          "dataset":dataset_name,
-          "algorithm": args.algorithm,
-          "fold": args.fold,
-          "batch_size":args.batch_size,
-          "size_reg":args.size_reg,
-          "class_reg": args.class_reg,
-          "layer_type": args.layer_type,
-          "ent_reg":args.ent_reg,
-          "date_tag": date_tag,
-          "task": args.task_type}
+config = vars(args)
 
 
 output_dir = args.output_dir
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 with open(f'{output_dir}/{dataset_name}config.json', 'w') as fp:
-    json.dump(config, fp)
+    json.dump(config, fp, indent=4)
     
-class_weights_for_positive = compute_pos_weights(training_data)
     
 # Create data loaders
 batch_size = config["batch_size"]
@@ -103,7 +110,7 @@ if config["model_type"] == "Vanilla":
                       task_type = args.task_type)
     
 elif config["model_type"] == "MultiChannel":
-    params_motif_x_class = torch.full((len(motif_list), training_data.num_classes), args.base_importance)
+    params_motif_x_class = torch.full((len(motif_list), training_data.num_classes), args.base_importance).to(device)
     model = GNNModel(input_dim = training_data.num_features, 
                       hidden_channels = config["hidden"], 
                       output_dim = training_data.num_classes, 
@@ -116,10 +123,7 @@ elif config["model_type"] == "MultiChannel":
                       test_lookup = test_data_lookup)
     
 else:
-    '''
-    Note: Regression not supported in this case
-    '''
-    raise Exception("Regression requires single channel")
+    raise Exception("Model not Supported")
 
 model.to(device)
 
@@ -139,21 +143,28 @@ else:
         {'params':model.parameters()}
     ], config["lr"])
 
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+
 # crit = torch.nn.CrossEntropyLoss()
 if args.task_type =='MutiClass':
     crit = torch.nn.CrossEntropyLoss()
+    class_weights_for_positive = compute_pos_weights(training_data)
 else:
     #MutiTask
     crit = torch.nn.BCEWithLogitsLoss(reduction='none')
+    raise Exception("Task not Supported")
 
 # vanilla_model.use_ones = False
-model_path = f"/explainer/{dataset_name}_1weighted_best_model.pth"
+# model_path = f"/explainer/{dataset_name}_1weighted_best_model.pth"
+model_path = f"/explainer/{dataset_name}_best_model_acc.pth"
+
 final_results_path = f"{output_dir}/{dataset_name}_classification_result.json"
 if os.path.isfile(final_results_path):
     #Training is complete go to evaluation
     model_state = torch.load(output_dir+model_path)
     model.load_state_dict(model_state)
 else:
+    os.makedirs(output_dir+"/explainer/", exist_ok=True)
     train_losses, val_losses, train_accs, val_accs = train_and_evaluate_model(model, 
                                                                               crit,optimizer,config["epochs"], 
                                                                               train_loader,val_loader, device, config, 
@@ -165,7 +176,11 @@ else:
                                                                               train_mask_data = (train_mask_data, training_data),
                                                                               val_mask_data = (val_mask_data, validation_data), 
                                                                               test_mask_data =(test_mask_data, test_data),
-                                                                              class_weights = class_weights_for_positive)    
+                                                                              class_weights = class_weights_for_positive,
+                                                                              patience = args.patience,
+                                                                              scheduler = scheduler,
+                                                                              clip_grad_norm=True)  
+
     image_path = output_dir+f"/explainer/{dataset_name}_losses.png"
     plot_losses(train_losses, val_losses, dataset_name, image_path)
     image_path = output_dir+f"/explainer/{dataset_name}_roc-auc.png"
@@ -184,8 +199,28 @@ pd.DataFrame([EXPERIMENT_RESULTS]).to_json(
 )
 
 # Explanation impact visualization
-if hasattr(model, 'motif_params'):   
-    save_csv_motif_importance_multiclass(model, 0, "", motif_list, [], [(test_mask_data, test_data)], f"{output_dir}/{dataset_name}_explanation_result_with_test.csv")
-    save_csv_motif_importance_multiclass(model, 0, "", motif_list, [], [(val_mask_data, validation_data)], f"{output_dir}/{dataset_name}_explanation_result_with_validation.csv")
-    save_csv_motif_importance_multiclass(model, 0, "", motif_list, [], [(train_mask_data, training_data)], f"{output_dir}/{dataset_name}_explanation_result_with_train.csv")
+if hasattr(model, 'motif_params'):
+    test_file = f"{output_dir}/{dataset_name}_explanation_result_with_test.csv"
+    val_file = f"{output_dir}/{dataset_name}_explanation_result_with_validation.csv"
+    train_file = f"{output_dir}/{dataset_name}_explanation_result_with_train.csv"
+
+    if not os.path.exists(test_file):
+        save_csv_motif_importance_multiclass(model, motif_list, [(test_mask_data, test_data)], test_file, num_classes)
+    if not os.path.exists(val_file):
+        save_csv_motif_importance_multiclass(model, motif_list, [(val_mask_data, validation_data)], val_file, num_classes)
+    if not os.path.exists(train_file):
+        save_csv_motif_importance_multiclass(model, motif_list, [(train_mask_data, training_data)], train_file, num_classes)
+        
+else:
+    test_file = f"{output_dir}/{dataset_name}_{args.algorithm}_test.csv"
+    val_file = f"{output_dir}/{dataset_name}_{args.algorithm}_validation.csv"
+    train_file = f"{output_dir}/{dataset_name}_{args.algorithm}_train.csv"
+
+    if not os.path.exists(test_file):
+        save_csv_motif_importance_multiclass(model, motif_list, [(test_mask_data, test_data)], test_file, num_classes, vanilla_model= True)
+    if not os.path.exists(val_file):
+        save_csv_motif_importance_multiclass(model, motif_list, [(val_mask_data, validation_data)], val_file, num_classes, vanilla_model= True)
+    if not os.path.exists(train_file):
+        save_csv_motif_importance_multiclass(model, motif_list, [(train_mask_data, training_data)], train_file, num_classes, vanilla_model= True)
+
     

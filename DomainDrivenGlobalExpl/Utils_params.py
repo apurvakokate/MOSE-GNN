@@ -561,7 +561,7 @@ def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, van
                     F.logsigmoid(original_pred).item(),
                     F.logsigmoid(new_pred).item()
                 ]
-                if importance is not None and sigmoid_imp is not None:
+                if motif_weights is not None:#if importance is not None and sigmoid_imp is not None:
                     row.extend([importance, sigmoid_imp])
 
                 row.append(data.y.item())
@@ -582,99 +582,69 @@ def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, van
         writer.writerows(csv_data)
 
         
-def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_file_path, vanilla_model=None):
+def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_file_path, num_classes, vanilla_model=False, batch_size=32):
     # Get the device from the model
     model_device = next(model.parameters()).device
-    num_classes = model.motif_params.shape[1]  # Determine the number of classes dynamically
-    motif_weights = model.motif_params.detach().cpu()
     csv_data = []  # Collect data for the CSV file
     use_vanilla = vanilla_model is not None
+    
+    motif_weights = None
+    if not use_vanilla and hasattr(model, 'motif_params'):
+        motif_weights = model.motif_params.detach().cpu()
 
-  
-    # Process each dataset in masked_data
-    for dataset in masked_data:
-        for motif_idx in dataset[0]:
+    for mask_data, original_data_list in masked_data:
+        for motif_idx, graph_indices in mask_data.items():
             print(f"Processing motif {motif_idx}")
-            logit_diff = None
-            logit_diff_with_vanilla = None
-            for graph_idx in dataset[0][motif_idx]:
-                data = dataset[1][graph_idx].to(model_device)
-
+            for graph_idx in graph_indices:
+                data = original_data_list[graph_idx].to(model_device)
                 valid_mask = ~torch.isnan(data.y)
                 
                 # Skip graphs with all NaN labels
                 if not valid_mask.any():
                     continue
+                    
+                # Perturbed input data
+                perturbed_data = mask_data[motif_idx][graph_idx].to(model_device)
 
-                # Original and perturbed predictions
-                original_prediction, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
-                new_prediction, _ = model(
-                    dataset[0][motif_idx][graph_idx].to(model_device),
-                    data.edge_index,
-                    None,
-                    node_to_motifs=data.nodes_to_motifs
-                )
-                # Initialize logit differences if not done
-                if logit_diff is None:
-                    logit_diff = torch.zeros_like(original_prediction, device=model_device)
-                    if use_vanilla:
-                        logit_diff_with_vanilla = torch.zeros_like(original_prediction, device=model_device)
-                
-
-                # Accumulate logit differences for all classes
-                logit_diff += (original_prediction - new_prediction) * valid_mask.float()
-                
-                # Process vanilla model if available
-                if use_vanilla:
-                    original_vanilla, _ = vanilla_model(data.x, data.edge_index, None,  node_to_motifs=data.nodes_to_motifs)
-                    new_vanilla, _ = vanilla_model(
-                        dataset[0][motif_idx][graph_idx].to(model_device),
-                        data.edge_index,
-                        None,
-                        node_to_motifs=data.nodes_to_motifs
-                    )
-                    logit_diff_with_vanilla += (original_vanilla - new_vanilla) * valid_mask.float()
-
+                # Forward passes
+                with torch.no_grad():
+                    original_pred, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
+                    new_pred, _ = model(perturbed_data, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
+                    
                 # Collect data for each class
                 for class_idx in range(num_classes):
                     if valid_mask[:,class_idx].item():  # Check if the label for this class is valid
                         if motif_idx == -1:
-                            row = [
-                                -1,
-                                "UNK",
-                                graph_idx,
-                                data.smiles,
-                                class_idx,
-                                99,
-                                1.0,
-                                original_prediction[:, class_idx].item(),
-                                new_prediction[:, class_idx].item(),
-                                F.log_softmax(original_prediction[:, class_idx], dim=-1).item(),
-                                F.log_softmax(new_prediction[:, class_idx], dim=-1).item(),
-                            ]
-                        else:    
-                            importance_class = motif_weights[motif_idx, class_idx].item()
-                            sigmoid_importance_class = torch.sigmoid(motif_weights[motif_idx, class_idx]).item()
-                            row = [
-                                motif_idx,
-                                motif_id,
-                                graph_idx,
-                                data.smiles,
-                                class_idx,
+                            motif_str = "UNK"
+                            importance = 99
+                            sigmoid_imp = 1.0
+                        else:
+                            motif_str = motif_list[motif_idx]
+                            importance = motif_weights[motif_idx, class_idx].item()
+                            sigmoid_imp = torch.sigmoid(motif_weights[motif_idx, class_idx]).item()
+
+                        
+                        
+                        
+                        row = [
+                            motif_idx,
+                            motif_id,
+                            graph_idx,
+                            data.smiles,
+                            class_idx,
+                            original_prediction[:, class_idx].item(),
+                            new_prediction[:, class_idx].item(),
+                            F.log_softmax(original_prediction[:, class_idx], dim=-1).item(),
+                            F.log_softmax(new_prediction[:, class_idx], dim=-1).item(),
+                        ]
+                        if motif_weights is not None:
+                            row.extend([
                                 importance_class,
                                 sigmoid_importance_class,
-                                original_prediction[:, class_idx].item(),
-                                new_prediction[:, class_idx].item(),
-                                F.log_softmax(original_prediction[:, class_idx], dim=-1).item(),
-                                F.log_softmax(new_prediction[:, class_idx], dim=-1).item(),
-                            ]
-                        if use_vanilla:
-                            row.extend([
-                                original_vanilla[:, class_idx].item(),
-                                new_vanilla[:, class_idx].item(),
                             ])
                         row.append(float(data.y[:, class_idx].item()))
                         csv_data.append(row)
+
 
     # Determine the headers based on vanilla_model presence
     headers = [
@@ -683,8 +653,6 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
         "graph_id",
         "graph_str",
         "class_id",
-        "importance",
-        "sigmoid_importance",
         "original_logit",
         "new_logit",
         "original_log_prob",
@@ -692,8 +660,8 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
     ]
     if use_vanilla:
         headers.extend([
-            "original_logit_vanilla",
-            "new_logit_vanilla",
+        "importance",
+        "sigmoid_importance",
         ])
     headers.append("class_label")
 
