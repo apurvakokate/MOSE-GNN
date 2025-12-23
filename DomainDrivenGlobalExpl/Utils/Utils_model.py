@@ -20,7 +20,7 @@ def compute_deg(loader, num_nodes=None):
     deg = torch.bincount(deg_hist)
     return deg
 
-def create_conv_layers(in_channels, hidden_channels, num_mp_layers, layer_type, deg, weightedEdge = False):
+def create_conv_layers(in_channels, hidden_channels, num_mp_layers, layer_type, deg=None, weightedEdge = False):
     convs = torch.nn.ModuleList()
 
     # First layer

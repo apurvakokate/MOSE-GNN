@@ -16,7 +16,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import pdb
 import pandas as pd
 from collections import deque
-
+import torch.nn.functional as F
 import torch
 
 import gc
@@ -142,6 +142,7 @@ def evaluate_model(model, loader, device, num_classes):
 
     all_preds = torch.cat(all_preds)
     all_labels = torch.cat(all_labels)
+    
     if model.task_type == 'MultiTask':
         # Step 1: Identify valid indices (exclude NaN and infinity values)
         valid_mask = ~np.isnan(all_labels) & ~np.isnan(all_preds) & np.isfinite(all_preds)
@@ -429,9 +430,22 @@ def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_load
         optimizer.load_state_dict(torch.load(optimizer_checkpoint_path))
 
     print(f"Starting at epoch {start_epoch + 1}")
+    
+    original_ent_reg = config["ent_reg"]
 
     for epoch in range(start_epoch, num_epochs):
         model.train()
+        
+        # if epoch < 20:
+        #     model.use_ones = True
+        # else:
+        #     model.use_ones = False
+        
+        # if epoch < 20:
+        #     config["ent_reg"] = 0.0
+        # else:
+        #     config["ent_reg"] = original_ent_reg
+            
         torch.cuda.empty_cache()
         gc.collect()
 
@@ -468,6 +482,7 @@ def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_load
             print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc,
                                 output_dir, dataset_name, logit_diff=logit_diff,
                                 params=model.motif_params.detach().cpu())
+            
         else:
             print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_acc, val_acc,
                                 output_dir, dataset_name)
@@ -494,6 +509,7 @@ def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_load
                     best_acc_epoch = epoch
                     best_train_acc = train_acc
                     torch.save(model.state_dict(), best_acc_model_path)
+ 
             else:
                 if val_acc > best_val_acc:
                     best_val_acc = val_acc
@@ -509,7 +525,8 @@ def train_and_evaluate_model(model, criterion, optimizer, num_epochs, train_load
             torch.cuda.empty_cache()
             gc.collect()
 
-        # log_memory_usage(epoch)
+        if config["use_annealing"] == True:
+            model.anneal_gumbel_tau()
 
     # Write best epoch info to CSV file
     csv_output_path = os.path.join(output_dir, f"{dataset_name}_best_epochs.csv")
@@ -540,7 +557,7 @@ def train_one_epoch(model, criterion, optimizer, train_loader, device, config, n
         model = model.to(device)
         optimizer.zero_grad()
 
-        output, mask = model(data.x, data.edge_index, data.batch, data.nodes_to_motifs, ignore_unknowns = ignore_unknowns)
+        output, node_mask = model(data.x, data.edge_index, data.batch, data.nodes_to_motifs, ignore_unknowns = ignore_unknowns)
         
         is_regression = isinstance(criterion, nn.MSELoss) and model.task_type == 'Regression'
         is_binary_classification = isinstance(criterion, nn.BCEWithLogitsLoss) and model.task_type == 'BinaryClass'
@@ -556,30 +573,30 @@ def train_one_epoch(model, criterion, optimizer, train_loader, device, config, n
             valid_mask = ~torch.isnan(data.y)
             data.y[~valid_mask] = -1.0
             per_element_loss = criterion(output, data.y)
-            # pdb.set_trace()
-            masked_loss = per_element_loss * valid_mask
-            
-            # Apply class weighting for imbalance
-            loss = masked_loss * class_weights.to(data.y.device)
             
             # Fixed code
             masked_loss = per_element_loss * valid_mask
             task_losses = (masked_loss * class_weights.to(data.y.device))  # Weight per task
             loss = task_losses.sum() / valid_mask.sum()  # Scalar aggregation
-
             
         else:
             pdb.set_trace()
             '''
-            MULTI CLASS
+            MULTI CLASS IS NOT SUPPORTED
             '''
-            loss = criterion(output, data.y.long().flatten())
+            # loss = criterion(output, data.y.long().flatten())
 
-        if mask is not None:
-            reg_loss = calculate_mask_loss(mask, config)
+        if hasattr(model, 'motif_params'): #Will not calculate regularization loss for Vanilla model
+            motif_scores = model.motif_params.sigmoid()
+            
+            if hasattr(model, "unk_param"):
+                unk_score = model.unk_param.sigmoid().to(motif_scores.device).view(1, 1)
+                motif_scores = torch.cat([motif_scores, unk_score], dim=0)
+            
+            reg_loss = calculate_mask_loss(motif_scores, config)
             loss += reg_loss
             running_loss_mask.append(reg_loss.item())
-        # pdb.set_trace()
+
         loss.backward()
         
         if clip_grad_norm:
@@ -595,15 +612,21 @@ def train_one_epoch(model, criterion, optimizer, train_loader, device, config, n
 
     return epoch_train_loss, epoch_mask_loss
 
-def calculate_mask_loss(mask, config):
+def calculate_mask_loss(mask, config, tau = 10):
     EPS = 1e-15
-    size_loss = torch.sum(mask) * config["size_reg"]
+    # size_loss = torch.sum(mask) * config["size_reg"]
+    # over = torch.relu(mask.sum() - tau)
+    tau = min(tau, mask.numel())
+    vals, _ = torch.sort(mask, descending=True)
+    penalized = vals[tau:]          # everything except top-τ
+    size_loss = config["size_reg"] * penalized.sum()
+
+    # over = (mask.sum() - tau).pow(2)
+    # size_loss = config["size_reg"] * over
+    
     mask_ent_reg = -mask * torch.log(mask + EPS) - (1 - mask) * torch.log(1 - mask + EPS)
     mask_ent_loss = config["ent_reg"] * torch.mean(mask_ent_reg)
-    # if mask.shape[1] != 1:
-    #     class_disc = config["class_reg"] * torch.sum((mask[:,0] + mask[:,1] - 1)**2)
-    #     return size_loss + mask_ent_loss + class_disc
-    # else:
+
     return size_loss + mask_ent_loss
 
 def validate_model(model, criterion, val_loader, device, train_loader, predictions = None):
@@ -668,34 +691,138 @@ def validate_model(model, criterion, val_loader, device, train_loader, predictio
 import os
 import csv
 
-def print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_auc, val_auc, output_dir, dataset_name, logit_diff = None, params = None):
+import csv, os, numpy as np
+import torch
+import wandb
+
+def _to_np(x):
+    if x is None:
+        return None
+    if isinstance(x, (float, int)):
+        return float(x)
+    if isinstance(x, torch.Tensor):
+        x = x.detach().cpu().numpy()
+    return np.asarray(x)
+
+def print_epoch_summary(
+    epoch, num_epochs,
+    train_loss, mask_loss, val_loss,
+    train_auc, val_auc,
+    output_dir, dataset_name,
+    logit_diff=None, params=None
+):
     csv_file = os.path.join(output_dir, f"{dataset_name}.csv")
-    
-    # Delete the CSV file if it exists in the first epoch
+
+    # Delete CSV on first epoch for a clean run
     if epoch == 0 and os.path.isfile(csv_file):
         os.remove(csv_file)
-    
-    # Print the summary
-    print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}", end='')
+
+    # Console print
+    msg = f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}"
     if mask_loss is not None:
-        print(f", Mask Loss: {mask_loss:.4f}", end='')
-    print(f", Val Loss: {val_loss:.4f}, Train ROC-AUC: {train_auc:.4f}, Val ROC-AUC: {val_auc:.4f}")
-    
-    # Save the summary to CSV
+        msg += f", Mask Loss: {mask_loss:.4f}"
+    msg += f", Val Loss: {val_loss:.4f}, Train ROC-AUC: {train_auc:.4f}, Val ROC-AUC: {val_auc:.4f}"
+    print(msg)
+
+    # CSV append
     file_exists = os.path.isfile(csv_file)
-    
-    with open(csv_file, mode='a', newline='') as file:
-        writer = csv.writer(file)
+    with open(csv_file, mode='a', newline='') as f:
+        writer = csv.writer(f)
         if logit_diff is not None:
             if not file_exists:
-                # Write the header only once
-                writer.writerow(["Epoch", "Train Loss", "Mask Loss", "Val Loss", "Train ROC-AUC", "Val ROC-AUC", "Logit Diff", "Motif params"])
-            writer.writerow([epoch+1, train_loss, mask_loss if mask_loss is not None else "N/A", val_loss, train_auc, val_auc, logit_diff, params.flatten().tolist()])
+                writer.writerow([
+                    "Epoch","Train Loss","Mask Loss","Val Loss",
+                    "Train ROC-AUC","Val ROC-AUC","Logit Diff","Motif params"
+                ])
+            writer.writerow([
+                epoch+1, train_loss,
+                mask_loss if mask_loss is not None else "N/A",
+                val_loss, train_auc, val_auc,
+                float(np.nanmean(_to_np(logit_diff))),
+                _to_np(params).flatten().tolist() if params is not None else "N/A"
+            ])
         else:
             if not file_exists:
-                # Write the header only once
-                writer.writerow(["Epoch", "Train Loss", "Mask Loss", "Val Loss", "Train ROC-AUC", "Val ROC-AUC"])
-            writer.writerow([epoch+1, train_loss, mask_loss if mask_loss is not None else "N/A", val_loss, train_auc, val_auc])
+                writer.writerow([
+                    "Epoch","Train Loss","Mask Loss","Val Loss",
+                    "Train ROC-AUC","Val ROC-AUC"
+                ])
+            writer.writerow([
+                epoch+1, train_loss,
+                mask_loss if mask_loss is not None else "N/A",
+                val_loss, train_auc, val_auc
+            ])
+
+    # ---- W&B logging (auto-plots time series) ----
+    if wandb.run is not None:
+        # Make x-axis use 'Epoch'
+        if epoch == 0:
+            wandb.define_metric("Epoch")
+            wandb.define_metric("*", step_metric="Epoch")
+
+        metrics = {
+            "Epoch": epoch + 1,
+            "train/loss": float(train_loss),
+            "val/loss": float(val_loss),
+            "train/roc_auc": float(train_auc),
+            "val/roc_auc": float(val_auc),
+        }
+        if mask_loss is not None:
+            metrics["train/mask_loss"] = float(mask_loss)
+
+        # Optional: distributions
+        if logit_diff is not None:
+            ld = _to_np(logit_diff).ravel()
+            metrics["analysis/logit_diff_mean"] = float(np.nanmean(ld))
+            metrics["analysis/logit_diff_hist"] = wandb.Histogram(ld)
+
+        if params is not None:
+            pp = _to_np(params).ravel()
+            # Avoid logging huge vectors every step if very large:
+            if pp.size <= 20000:
+                metrics["motifs/params_hist"] = wandb.Histogram(pp)
+            metrics["motifs/params_mean"] = float(np.nanmean(pp))
+            metrics["motifs/params_std"]  = float(np.nanstd(pp))
+
+        wandb.log(metrics)
+
+        # Log the CSV once at the end as a versioned artifact
+        if epoch + 1 == num_epochs and os.path.isfile(csv_file):
+            art = wandb.Artifact(
+                name=f"{dataset_name}_training_log",
+                type="run-metrics"
+            )
+            art.add_file(csv_file, name=f"{dataset_name}.csv")
+            wandb.log_artifact(art)
+
+# def print_epoch_summary(epoch, num_epochs, train_loss, mask_loss, val_loss, train_auc, val_auc, output_dir, dataset_name, logit_diff = None, params = None):
+#     csv_file = os.path.join(output_dir, f"{dataset_name}.csv")
+    
+#     # Delete the CSV file if it exists in the first epoch
+#     if epoch == 0 and os.path.isfile(csv_file):
+#         os.remove(csv_file)
+    
+#     # Print the summary
+#     print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}", end='')
+#     if mask_loss is not None:
+#         print(f", Mask Loss: {mask_loss:.4f}", end='')
+#     print(f", Val Loss: {val_loss:.4f}, Train ROC-AUC: {train_auc:.4f}, Val ROC-AUC: {val_auc:.4f}")
+    
+#     # Save the summary to CSV
+#     file_exists = os.path.isfile(csv_file)
+    
+#     with open(csv_file, mode='a', newline='') as file:
+#         writer = csv.writer(file)
+#         if logit_diff is not None:
+#             if not file_exists:
+#                 # Write the header only once
+#                 writer.writerow(["Epoch", "Train Loss", "Mask Loss", "Val Loss", "Train ROC-AUC", "Val ROC-AUC", "Logit Diff", "Motif params"])
+#             writer.writerow([epoch+1, train_loss, mask_loss if mask_loss is not None else "N/A", val_loss, train_auc, val_auc, logit_diff, params.flatten().tolist()])
+#         else:
+#             if not file_exists:
+#                 # Write the header only once
+#                 writer.writerow(["Epoch", "Train Loss", "Mask Loss", "Val Loss", "Train ROC-AUC", "Val ROC-AUC"])
+#             writer.writerow([epoch+1, train_loss, mask_loss if mask_loss is not None else "N/A", val_loss, train_auc, val_auc])
 
 # Helper function to compute motif colors (logit differences)
 def compute_motif_colors(mask_data, model_device):

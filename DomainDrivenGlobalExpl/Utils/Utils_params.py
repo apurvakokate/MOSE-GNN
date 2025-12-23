@@ -3,250 +3,28 @@ import numpy as np
 import sys
 from collections import defaultdict
 from torch_geometric.loader import DataLoader
-from Utils_Train import get_masked_graphs_from_list
+from Utils.Utils_Train import get_masked_graphs_from_list
 import pdb
 import csv
-from Explainer import Explainer
-from GNNExplainer import GNNExplainer
-from PGExplainer import PGExplainer
+from Explainer.Explainer import Explainer
+from Explainer.GNNExplainer import GNNExplainer
+from Explainer.PGExplainer import PGExplainer
 from tqdm import tqdm
+from scipy.stats import pearsonr
 import torch.nn.functional as F
+import wandb
+import pandas as pd
 
-# def normalize_ratio(c0, c1, epsilon=1e-8):
-#     """Calculate normalized ratio difference."""
-#     r0 = c0 / (c0 + c1 + epsilon)
-#     r1 = 1 - r0
-#     return r0, r1
+from torch_geometric.data import Batch
 
-# def scale_frequencies(c0, c1, max_c0, max_c1, alpha=0.5):
-#     """Scale the frequencies within each class."""
-#     f0_scaled = pow(c0 / max_c0, alpha)
-#     f1_scaled = pow(c1 / max_c1, alpha)
-#     return f0_scaled, f1_scaled
-
-# def combine_scores(r0, r1, f0_scaled, f1_scaled, beta=1.0, gamma=0.5):
-#     """Combine ratio difference with scaled frequencies."""
-#     x0 = beta * r0 + gamma * f0_scaled
-#     x1 = beta * r1 + gamma * f1_scaled
-#     return torch.Tensor([x0, x1])
-
-# def normalize_motif_score(c0, c1, max_c0, max_c1, alpha=0.5, beta=1.0, gamma=0.5, epsilon=1e-8):
-#     """Calculate the normalized motif score."""
-#     r0, r1 = normalize_ratio(c0, c1, epsilon)
-#     f0_scaled, f1_scaled = scale_frequencies(c0, c1, max_c0, max_c1, alpha)
-#     return combine_scores(r0, r1, f0_scaled, f1_scaled, beta, gamma)
-
-# def calculate_class_totals(df, dataset_name):
-#     """Calculate the total number of graphs for each class."""
-#     class_1_graph_total = df[dataset_name].sum()
-#     class_0_graph_total = len(df) - class_1_graph_total
-#     return class_0_graph_total, class_1_graph_total
-
-# def build_index_class_dict(df, dataset_name, graph_to_motifs, lookup):
-#     """Build a dictionary with counts of motifs for each class."""
-#     indx_class_dict = defaultdict(lambda: {0: 1, 1: 1})
-#     for g, label in zip(df.smiles.tolist(), df[dataset_name].tolist()):
-#         if g in lookup:
-#             for indx in graph_to_motifs[g]:
-#                 indx_class_dict[indx][label] += 1
-#     return indx_class_dict
-
-# def calculate_max_counts(indx_class_dict):
-#     """Calculate maximum counts for normalization."""
-#     max_c0 = max(indx_class_dict[indx][0] for indx in indx_class_dict.keys())
-#     max_c1 = max(indx_class_dict[indx][1] for indx in indx_class_dict.keys())
-#     return max_c0, max_c1
-
-# def initialize_parameters(motif_list, indx_class_dict, max_c0, max_c1, alpha=0.5, beta=1.0, gamma=0.5):
-#     """Initialize the parameters tensor and value counts."""
-#     parameters = np.zeros((len(motif_list), 2), dtype=np.float32)
-#     value_counts = np.zeros((len(motif_list), 2), dtype=np.float32)
-    
-#     for i, motif in enumerate(motif_list):
-#         class_counts = indx_class_dict.get(i, {0: 1, 1: 1})
-#         c0, c1 = class_counts[0], class_counts[1]
-
-#         # Calculate normalized motif score
-#         normalized_motif_score = normalize_motif_score(c0, c1, max_c0, max_c1, alpha, beta, gamma)
-#         epsilon = sys.float_info.epsilon
-#         # normalized_motif_score = torch.clamp((normalized_motif_score-0.5)*1.8, 0.0, 1 - epsilon)
-#         normalized_motif_score = torch.clamp((normalized_motif_score), 0.0, 1 - epsilon)
-
-#         # Calculate log odds and clip values
-#         parameters[i] = torch.clamp(
-#             torch.log(normalized_motif_score) - torch.log(1 - normalized_motif_score),
-#             -3.0, 3.0
-#         )
-#         value_counts[i] = np.array([c0, c1], dtype=np.float32)
-
-#     parameters_tensor = torch.nn.Parameter(torch.tensor(parameters, dtype=torch.float32), requires_grad=True)
-    
-#     return parameters_tensor, value_counts
-
-# def init_parameters(df, dataset_name, motif_list, graph_to_motifs, lookup, alpha=0.5, beta=1.0, gamma=0.5, sigmoid_flag=False, scale = 0.5):
-#     """Main function to initialize parameters and value counts."""
-#     class_0_graph_total, class_1_graph_total = calculate_class_totals(df, dataset_name)
-#     indx_class_dict = build_index_class_dict(df, dataset_name, graph_to_motifs, lookup)
-#     max_c0, max_c1 = calculate_max_counts(indx_class_dict)
-#     if sigmoid_flag:
-#         return initialize_parameters_sigmoid(motif_list, indx_class_dict, max_c0, max_c1, alpha, beta, gamma, scale)
-#     else:
-#         return initialize_parameters(motif_list, indx_class_dict, max_c0, max_c1, alpha, beta, gamma)
-
-# def initialize_parameters_sigmoid(motif_list, indx_class_dict, max_c0, max_c1, alpha=0.5, beta=1.0, gamma=0.5, scale = 0.5):
-#     """Initialize the parameters tensor and value counts."""
-#     parameters = np.zeros((len(motif_list), 2), dtype=np.float32)
-#     value_counts = np.zeros((len(motif_list), 2), dtype=np.float32)
-    
-#     for i, motif in enumerate(motif_list):
-#         class_counts = indx_class_dict.get(i, {0: 1, 1: 1})
-#         c0, c1 = class_counts[0], class_counts[1]
-
-#         # Calculate normalized motif score
-#         normalized_motif_score = normalize_motif_score(c0, c1, max_c0, max_c1, 0.5, 1.0, 0.4)
-#         epsilon = sys.float_info.epsilon
-#         normalized_motif_score = torch.clamp((normalized_motif_score-0.5), 0.0, 1 - epsilon)
-#         # normalized_motif_score = torch.clamp((normalized_motif_score), 0.0, 1 - epsilon)
-
-#         # Calculate log odds and clip values
-#         parameters[i] = torch.clamp(
-#             torch.log(normalized_motif_score) - torch.log(1 - normalized_motif_score),
-#             -scale, scale
-#         )
-#         value_counts[i] = np.array([c0, c1], dtype=np.float32)
-
-#     parameters_tensor = torch.nn.Parameter(torch.tensor(parameters, dtype=torch.float32), requires_grad=True)
-    
-#     return parameters_tensor, value_counts
-
-
-# def get_marginal_importance_of_motifs(loader, lookup_dict, graph_to_motifs, vanilla_model, device):
-#     motif_weights = vanilla_model.motif_params.detach().cpu()
-#     result = {}
-
-#     for motif_idx, weight in enumerate(motif_weights):
-#         print(f"{motif_idx} of {motif_weights.shape[0]}")
-        
-#         # Filter graphs in the original loader that contain the motif
-#         filtered_data = []
-#         unique_labels = set()
-#         for batch in loader:
-#             batch_smiles = batch.smiles  # Assuming `batch` has an attribute `smiles` containing SMILES strings
-#             for i, smiles in enumerate(batch_smiles):
-#                 if motif_idx in graph_to_motifs[smiles]:
-#                     filtered_data.append(batch[i])
-#                     unique_labels.add(batch.y[i].item())
-        
-#         # Create a new DataLoader with the filtered data
-#         if filtered_data:
-#             filtered_loader = DataLoader(filtered_data, batch_size=loader.batch_size, shuffle=False)
-            
-#             # Evaluate the model on the original graphs containing the motif
-#             original_pred,  original_pred_y = evaluate_model_prediction(vanilla_model, filtered_loader, device)
-            
-#             # Apply masking to the graphs containing the motif
-#             masked_data = get_masked_graphs_from_list(filtered_data, motif_idx, vanilla_model, lookup_dict)
-            
-#             masked_loader = DataLoader(masked_data, batch_size=loader.batch_size, shuffle=False)
-            
-#             # Evaluate the model on the masked graphs
-#             new_pred, _ = evaluate_model_prediction(vanilla_model, masked_loader, device, original_pred_y)
-
-#             original_pred_y = torch.cat(original_pred_y)
-#             original_pred = torch.stack(original_pred)
-#             new_pred = torch.stack(new_pred)
-            
-#             # Store the results
-#             for class_label in [0,1]:
-#                 mask_of_graph_belonging_to_class = (original_pred_y == class_label)
-#                 # input(mask_of_graph_belonging_to_class)
-                
-#                 original_pred_of_class = original_pred[mask_of_graph_belonging_to_class]
-#                 # input(original_pred_y)
-#                 new_pred_of_class = new_pred[mask_of_graph_belonging_to_class]
-                
-#                 for opred, npred in zip(original_pred_of_class, new_pred_of_class):
-#                     result[(weight[class_label].item())] = (opred.item(), npred.item(), class_label, motif_idx)
-#                     # input(result)
-#         else:
-#             # If no graphs contain the motif, skip this motif
-#             print(f"No graphs found containing motif {motif_idx}")
-    
-#     return result
-
-
-
-
-# def get_motif_importance_stat(loader, lookup_dict, graph_to_motifs, vanilla_model, device):
-#     motif_weights = vanilla_model.motif_params.detach().cpu()
-#     result = defaultdict(list)
-
-#     for motif_idx, weight in enumerate(motif_weights):
-#         print(f"{motif_idx} of {motif_weights.shape[0]}")
-        
-#         # Filter graphs in the original loader that contain the motif
-#         batch_list = []
-#         smiles_list= []
-#         filtered_data = []
-#         unique_labels = set()
-#         for batch_id,batch in enumerate(loader):
-#             batch_smiles = batch.smiles  # Assuming `batch` has an attribute `smiles` containing SMILES strings
-#             for i, smiles in enumerate(batch_smiles):
-#                 if motif_idx in graph_to_motifs[smiles]:
-                    
-                    
-#                     batch_list.append(batch_id)
-#                     smiles_list.append(i)
-#                     filtered_data.append(batch[i])
-#                     unique_labels.add(batch.y[i].item())
-                    
-#         # Create a new DataLoader with the filtered data
-#         if filtered_data:
-#             filtered_loader = DataLoader(filtered_data, batch_size=loader.batch_size, shuffle=False)
-            
-#             # Evaluate the model on the original graphs containing the motif
-#             original_pred, y_label = get_model_prediction(vanilla_model, filtered_loader, device)
-            
-#             # Apply masking to the graphs containing the motif
-#             masked_data = get_masked_graphs_from_list(filtered_data, motif_idx, vanilla_model, lookup_dict)
-            
-#             masked_loader = DataLoader(masked_data, batch_size=loader.batch_size, shuffle=False)
-            
-#             # Evaluate the model on the masked graphs
-#             new_pred, _= get_model_prediction(vanilla_model, masked_loader, device)
-            
-#             # input(original_pred)
-#             # input(new_pred)
-
-#             original_pred = torch.stack(original_pred)
-#             new_pred = torch.stack(new_pred)
-#             labels = torch.stack(y_label)
-            
-#             for opred, npred, label_y,batch_idx,smile_idx in zip(original_pred, new_pred, labels,batch_list,smiles_list):
-            
-#                 result["motif_id"].append(motif_idx)
-#                 result["batch_id"].append(batch_idx)
-#                 result["smile_id"].append(smile_idx)
-#                 for channel_id in range(weight.size(dim=0)):
-#                     result[f"importance_for_class_{channel_id}"].append(weight[channel_id].item())
-#                     result[f"sigmoid_importance_for_class_{channel_id}"].append(torch.sigmoid(weight[channel_id]).item())
-#                 for class_id in range(opred.size(dim=0)):
-#                     result[f"original_logit_class_{class_id}"].append(opred[class_id].item())
-#                     result[f"new_logit_class_{class_id}"].append(npred[class_id].item())
-#                 result["class_label"].append(label_y.item())
-            
-                
-                
-#         else:
-#             # If no graphs contain the motif, skip this motif
-#             print(f"No graphs found containing motif {motif_idx}")
-    
-#     return result
+def _sigmoid_np(x):
+    return 1 / (1 + np.exp(-x))
 
 def save_posthoc_motif_importance(model, motif_list, masked_data, csv_file_path, lookup=None, test_lookup=None, task_type="BinaryClass", dataset_name = None, model_type = None):
     '''
     Example usage save_csv_motif_importance(model, motif_list, [(train_mask_data, training_data)], train_file, vanilla_model= vanilla_model, lookup = test_data_lookup)
     '''
+    model.eval()
     
     # Get the device from the model
     model_device = next(model.parameters()).device
@@ -418,107 +196,602 @@ def save_posthoc_motif_importance(model, motif_list, masked_data, csv_file_path,
         writer = csv.writer(file)
         writer.writerow(headers)
         writer.writerows(csv_data)
-        
-# def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, vanilla_model=False):
-#     '''
-#     Example usage save_csv_motif_importance(model, motif_list, [(train_mask_data, training_data)], train_file, vanilla_model= vanilla_model, lookup = test_data_lookup)
-#     '''
-    
-#     # Get the device from the model
-#     model_device = next(model.parameters()).device
-#     csv_data = []  # Collect data for the CSV file
-#     use_vanilla = vanilla_model
-#     if not use_vanilla:
-#         motif_weights = model.motif_params.detach().cpu()
-    
-        
-#     # Process each dataset: train, val, test
-#     for dataset in masked_data:
-#         for motif_idx in dataset[0]:
-#             print(f"Processing motif {motif_idx}")
-#             logit_diff = torch.tensor([[0.0]], device=model_device)
-#             log_probabilities_diff = torch.tensor([[0.0]], device=model_device)
-#             for graph_idx in dataset[0][motif_idx]: #masked data list for each motif
-#                 data = dataset[1][graph_idx].to(model_device) #original data list
 
-#                 # Original and perturbed predictions using the main model
-#                 original_pred, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
-#                 new_pred, _ = model(
-#                     dataset[0][motif_idx][graph_idx].to(model_device),
-#                     data.edge_index,
-#                     None,
-#                     node_to_motifs=data.nodes_to_motifs
-#                 )
+
+
+
+def save_csv_motif_importance_optimized(
+    model,
+    motif_list,
+    masked_data,
+    csv_file_path,
+    vanilla_model=False,
+    batch_size=32,
+    num_classes=1,   # NEW
+):
+    model.eval()
+    model_device = next(model.parameters()).device
+    csv_data = []
+    use_vanilla = vanilla_model
+
+    motif_weights = None
+    if not use_vanilla and hasattr(model, 'motif_params'):
+        motif_weights = model.motif_params.detach().cpu()
+
+    # ----------------- Small helpers -----------------
+
+    def _selected_indices(graph_indices):
+        """Normalize indices to a sorted unique list."""
+        if isinstance(graph_indices, (list, tuple, torch.Tensor)):
+            return sorted(set(int(i) for i in graph_indices))
+        else:
+            return sorted(set(int(i) for i in list(graph_indices)))
+
+    def _log_pearson_metrics_from_csv(csv_data, motif_weights, headers):
+        """
+        Shared Pearson / weighted Pearson logging for both binary and multiclass.
+        Uses headers to locate the relevant columns.
+        """
+        has_imp = motif_weights is not None
+        if not (has_imp and csv_data):
+            wandb.log({
+                "pearson_motif_logit_impact": 0.0,
+                "weighted_pearson_motif_logit_impact": 0.0,
+                "zero_ratio_penalty": 0.0,
+                "n_motifs_used": 0,
+            })
+            return
+
+        try:
+            col_motif_id   = headers.index("motif_id")
+            col_orig_logit = headers.index("original_logit")
+            col_new_logit  = headers.index("new_logit")
+            col_sigimp     = headers.index("sigmoid_importance")
+        except ValueError:
+            # Missing columns (e.g., no sigmoid_importance) → log zeros
+            wandb.log({
+                "pearson_motif_logit_impact": 0.0,
+                "weighted_pearson_motif_logit_impact": 0.0,
+                "zero_ratio_penalty": 0.0,
+                "n_motifs_used": 0,
+            })
+            return
+
+        arr = np.asarray(csv_data, dtype=object)
+
+        # Filter: motif_id != -1 (exclude UNK)
+        mask = arr[:, col_motif_id] != -1
+        if not np.any(mask):
+            wandb.log({
+                "pearson_motif_logit_impact": 0.0,
+                "weighted_pearson_motif_logit_impact": 0.0,
+                "zero_ratio_penalty": 0.0,
+                "n_motifs_used": 0,
+            })
+            return
+
+        orig = arr[mask, col_orig_logit].astype(np.float64, copy=False)
+        new  = arr[mask, col_new_logit].astype(np.float64, copy=False)
+        sigi = arr[mask, col_sigimp].astype(np.float64, copy=False)
+
+        # Drop NaNs / inf in a single pass
+        finite_mask = np.isfinite(orig) & np.isfinite(new) & np.isfinite(sigi)
+        if not np.any(finite_mask):
+            wandb.log({
+                "pearson_motif_logit_impact": 0.0,
+                "weighted_pearson_motif_logit_impact": 0.0,
+                "zero_ratio_penalty": 0.0,
+                "n_motifs_used": 0,
+            })
+            return
+
+        orig = orig[finite_mask]
+        new  = new[finite_mask]
+        sigi = sigi[finite_mask]
+
+        # Compute impact = |sigmoid(orig) - sigmoid(new)| (vectorized)
+        impact = np.abs(_sigmoid_np(orig) - _sigmoid_np(new))
+
+        # Guard against constant arrays (variance == 0) without counting tiny fp noise
+        if impact.size > 1 and sigi.size > 1 and np.var(impact) > 0.0 and np.var(sigi) > 0.0:
+            x = sigi
+            y = impact
+            x_mean = x.mean()
+            y_mean = y.mean()
+            xm = x - x_mean
+            ym = y - y_mean
+            denom = (np.sqrt((xm * xm).sum()) * np.sqrt((ym * ym).sum()))
+            pearson_corr = float((xm * ym).sum() / denom) if denom > 0 else 0.0
+
+            zero_ratio = float((sigi < 0.1).mean())
+            penalty = float(1.0 - zero_ratio)
+            weighted_pearson = float(pearson_corr * penalty)
+        else:
+            pearson_corr = 0.0
+            weighted_pearson = 0.0
+            penalty = 0.0
+
+        wandb.log({
+            "pearson_motif_logit_impact": pearson_corr,
+            "weighted_pearson_motif_logit_impact": weighted_pearson,
+            "zero_ratio_penalty": penalty,
+            "n_motifs_used": int(impact.size),
+        })
+
+    # ==========================================================
+    # 1) BINARY CASE: original behavior kept intact (num_classes = 1 or 2)
+    # ==========================================================
+    if num_classes <= 2:
+        with torch.no_grad():
+            for mask_data, original_data_list in masked_data:
+                # ---------- Full batch once for original logits ----------
+                full_batch: Batch = Batch.from_data_list(original_data_list).to(model_device)
+                full_batch_vec = getattr(full_batch, "batch", None)
+                full_nodes_to_motifs = getattr(full_batch, "nodes_to_motifs", None)
                 
-#                 logit_diff += original_pred - new_pred
-                
-                    
-#                 if motif_idx == -1:
-#                     # Prepare the CSV row
-#                     row = [
-#                         -1,
-#                         "UNK",
-#                         graph_idx,
-#                         data.smiles,
-#                         original_pred.item(),
-#                         new_pred.item(),
-#                         F.logsigmoid(original_pred).item(),
-#                         F.logsigmoid(new_pred).item(),
-#                     ]
-#                     if not use_vanilla:
-#                         row.extend([
-#                             99,
-#                             1.0,
-#                         ])
-#                 else:    
-#                     # Prepare the CSV row
-#                     row = [
-#                         motif_idx,
-#                         motif_list[motif_idx],
-#                         graph_idx,
-#                         data.smiles,
-#                         original_pred.item(),
-#                         new_pred.item(),
-#                         F.logsigmoid(original_pred).item(),
-#                         F.logsigmoid(new_pred).item(),
-#                     ]
-#                     if not use_vanilla:
-#                         row.extend([
-#                             motif_weights[motif_idx].item(),
-#                             torch.sigmoid(motif_weights[motif_idx]).item(),
-#                         ])
-#                 row.append(data.y.item())
-#                 csv_data.append(row)
+                orig_logits, _ = model(
+                    full_batch.x,
+                    full_batch.edge_index,
+                    full_batch_vec,
+                    node_to_motifs=full_nodes_to_motifs
+                )  # [num_graphs]
+                orig_logits = orig_logits.view(-1).detach().cpu()
+                orig_logsig = F.logsigmoid(orig_logits)
+
+                # Per-graph metadata (CPU)
+                smiles_list = [d.smiles for d in original_data_list]
+                y_vec = torch.tensor(
+                    [int(d.y.item()) for d in original_data_list],
+                    dtype=torch.long
+                )
+
+                # Iterate only the motifs we care about
+                for motif_idx, graph_indices in mask_data.items():
+                    print(f"Processing motif {motif_idx}")
+
+                    selected_indices = _selected_indices(graph_indices)
+                    if len(selected_indices) == 0:
+                        continue
+
+                    # ---------- Build sub-batch only for the selected graphs ----------
+                    sub_list = [original_data_list[i] for i in selected_indices]
+                    sub_batch: Batch = Batch.from_data_list(sub_list).to(model_device)
+                    sub_batch_vec = getattr(sub_batch, "batch", None)
+                    sub_nodes_to_motifs = getattr(sub_batch, "nodes_to_motifs", None)
+
+                    # ---------- One masked forward for this motif over the subset ----------
+                    masked_logits_sub, _ = model(
+                        sub_batch.x,
+                        sub_batch.edge_index,
+                        sub_batch_vec,
+                        node_to_motifs=sub_nodes_to_motifs,
+                        masked_motif=motif_idx
+                    )
+                    masked_logits_sub = masked_logits_sub.view(-1).detach().cpu()
+                    masked_logsig_sub = F.logsigmoid(masked_logits_sub)
+
+                    # Motif-level metadata
+                    if motif_idx == -1:
+                        motif_str = "UNK"
+                        if hasattr(model, "unk_param"):
+                            importance = float(model.unk_param.item())
+                            sigmoid_imp = float(model.unk_param.sigmoid().item())
+                        else:
+                            importance = 99.0
+                            if hasattr(model, "unk_importance"):
+                                sigmoid_imp = float(model.unk_importance)
+                            else:
+                                sigmoid_imp = None
+                    else:
+                        motif_str = motif_list[motif_idx]
+                        if motif_weights is not None:
+                            importance = float(motif_weights[motif_idx].item())
+                            sigmoid_imp = float(
+                                torch.sigmoid(torch.as_tensor(importance)).item()
+                            )
+                        else:
+                            importance = None
+                            sigmoid_imp = None
+
+                    # ---------- Emit rows only for the selected graphs ----------
+                    for k, gidx in enumerate(selected_indices):
+                        row = [
+                            int(motif_idx),
+                            motif_str,
+                            int(gidx),
+                            smiles_list[gidx],
+                            float(orig_logits[gidx].item()),
+                            float(masked_logits_sub[k].item()),
+                            float(orig_logsig[gidx].item()),
+                            float(masked_logsig_sub[k].item()),
+                        ]
+                        if motif_weights is not None:
+                            row.extend([importance, sigmoid_imp])
+                        row.append(int(y_vec[gidx].item()))
+                        csv_data.append(row)
     
-#     # Determine the headers based on vanilla_model presence
+        # ---- Build headers (unchanged for binary) ----
+        headers = [
+            "motif_id", "motif", "graph_id", "graph_str",
+            "original_logit", "new_logit",
+            "original_log_prob", "new_log_prob"
+        ]
+        if motif_weights is not None:
+            headers.extend(["importance", "sigmoid_importance"])
+        headers.append("class_label")
+
+        # ---- Vectorized metrics (shared helper) ----
+        _log_pearson_metrics_from_csv(csv_data, motif_weights, headers)
+
+        # ---- Write CSV (fast, streaming; avoids DataFrame build) ----
+        with open(csv_file_path, mode="w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(headers)
+            writer.writerows(csv_data)
+        return  # done with binary case
+
+    # ==========================================================
+    # 2) MULTICLASS / MULTILABEL CASE (num_classes > 1)
+    # ==========================================================
+    with torch.no_grad():
+        for mask_data, original_data_list in masked_data:
+            # ---------- Full batch once for original logits ----------
+            full_batch: Batch = Batch.from_data_list(original_data_list).to(model_device)
+            full_batch_vec = getattr(full_batch, "batch", None)
+            full_nodes_to_motifs = getattr(full_batch, "nodes_to_motifs", None)
+            
+            orig_logits_raw, _ = model(
+                full_batch.x,
+                full_batch.edge_index,
+                full_batch_vec,
+                node_to_motifs=full_nodes_to_motifs
+            )  # [num_graphs, num_classes] expected
+
+            orig_logits_raw = orig_logits_raw.view(-1, num_classes)
+            orig_logprob_raw = F.log_softmax(orig_logits_raw, dim=-1)
+
+            orig_logits = orig_logits_raw.detach().cpu()      # [G, C]
+            orig_logprob = orig_logprob_raw.detach().cpu()    # [G, C]
+
+            # Per-graph metadata (CPU)
+            smiles_list = [d.smiles for d in original_data_list]
+
+            # Build label matrix [G, C], with NaNs for missing labels
+            y_rows = []
+            for d in original_data_list:
+                y_flat = d.y.view(-1).to(torch.float32).cpu()
+                if y_flat.numel() == num_classes:
+                    pass
+                elif y_flat.numel() == 1:
+                    # broadcast scalar label if needed
+                    y_flat = y_flat.repeat(num_classes)
+                elif y_flat.numel() < num_classes:
+                    pad = torch.full((num_classes - y_flat.numel(),), float('nan'))
+                    y_flat = torch.cat([y_flat, pad], dim=0)
+                else:
+                    y_flat = y_flat[:num_classes]
+                y_rows.append(y_flat)
+            y_mat = torch.stack(y_rows, dim=0)          # [G, C]
+            valid_mask = ~torch.isnan(y_mat)            # [G, C] boolean
+            num_graphs = len(original_data_list)
+
+            # Iterate only the motifs we care about
+            for motif_idx, graph_indices in mask_data.items():
+                print(f"Processing motif {motif_idx}")
+
+                selected_indices = _selected_indices(graph_indices)
+                if len(selected_indices) == 0:
+                    continue
+
+                # ---------- Build sub-batch only for the selected graphs ----------
+                sub_list = [original_data_list[i] for i in selected_indices]
+                sub_batch: Batch = Batch.from_data_list(sub_list).to(model_device)
+                sub_batch_vec = getattr(sub_batch, "batch", None)
+                sub_nodes_to_motifs = getattr(sub_batch, "nodes_to_motifs", None)
+
+                # ---------- One masked forward for this motif over the subset ----------
+                masked_logits_raw, _ = model(
+                    sub_batch.x,
+                    sub_batch.edge_index,
+                    sub_batch_vec,
+                    node_to_motifs=sub_nodes_to_motifs,
+                    masked_motif=motif_idx
+                )
+                masked_logits_raw = masked_logits_raw.view(-1, num_classes)
+                masked_logprob_raw = F.log_softmax(masked_logits_raw, dim=-1)
+
+                masked_logits_sub = masked_logits_raw.detach().cpu()   # [G_sub, C]
+                masked_logprob_sub = masked_logprob_raw.detach().cpu() # [G_sub, C]
+
+                # Motif-level metadata (string only; importance is per-class below)
+                if motif_idx == -1:
+                    motif_str = "UNK"
+                else:
+                    motif_str = motif_list[motif_idx]
+
+                # ---------- Emit rows for each graph & class ----------
+                for k, gidx in enumerate(selected_indices):
+                    if gidx < 0 or gidx >= num_graphs:
+                        continue
+
+                    for class_idx in range(num_classes):
+                        if not bool(valid_mask[gidx, class_idx].item()):
+                            continue  # skip unlabeled class
+
+                        # importance & sigmoid importance per (motif, class)
+                        if motif_idx == -1:
+                            if hasattr(model, "unk_param"):
+                                unk_param = model.unk_param.detach().cpu()
+                                if unk_param.ndim == 0:
+                                    importance = float(unk_param.item())
+                                elif unk_param.ndim == 1 and unk_param.shape[0] == num_classes:
+                                    importance = float(unk_param[class_idx].item())
+                                else:
+                                    importance = float(unk_param.view(-1)[0].item())
+                                sigmoid_imp = float(
+                                    torch.sigmoid(torch.as_tensor(importance)).item()
+                                )
+                            else:
+                                importance = 99.0
+                                if hasattr(model, "unk_importance"):
+                                    sigmoid_imp = float(model.unk_importance)
+                                else:
+                                    sigmoid_imp = None
+                        else:
+                            if motif_weights is not None:
+                                if motif_weights.ndim == 1:
+                                    importance = float(motif_weights[motif_idx].item())
+                                elif motif_weights.ndim == 2:
+                                    importance = float(motif_weights[motif_idx, class_idx].item())
+                                else:
+                                    importance = float(motif_weights[motif_idx].view(-1)[0].item())
+                                sigmoid_imp = float(
+                                    torch.sigmoid(torch.as_tensor(importance)).item()
+                                )
+                            else:
+                                importance = None
+                                sigmoid_imp = None
+
+                        row = [
+                            int(motif_idx),
+                            motif_str,
+                            int(gidx),
+                            smiles_list[gidx],
+                            int(class_idx),
+                            float(orig_logits[gidx, class_idx].item()),
+                            float(masked_logits_sub[k, class_idx].item()),
+                            float(orig_logprob[gidx, class_idx].item()),
+                            float(masked_logprob_sub[k, class_idx].item()),
+                        ]
+                        if motif_weights is not None or motif_idx == -1:
+                            row.extend([importance, sigmoid_imp])
+                        row.append(float(y_mat[gidx, class_idx].item()))
+                        csv_data.append(row)
+
+    # ---- Build headers for MULTICLASS ----
+    headers = [
+        "motif_id", "motif", "graph_id", "graph_str",
+        "class_id",
+        "original_logit", "new_logit",
+        "original_log_prob", "new_log_prob"
+    ]
+    if motif_weights is not None or any(r[0] == -1 for r in csv_data):
+        headers.extend(["importance", "sigmoid_importance"])
+    headers.append("class_label")
+
+    # ---- Vectorized metrics for MULTICLASS (shared helper) ----
+    _log_pearson_metrics_from_csv(csv_data, motif_weights, headers)
+
+    # ---- Write CSV (multiclass) ----
+    with open(csv_file_path, mode="w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        writer.writerows(csv_data)
+
+
+        
+
+# def save_csv_motif_importance_optimized(model, motif_list, masked_data, csv_file_path, vanilla_model=False, batch_size=32):
+#     model.eval()
+#     model_device = next(model.parameters()).device
+#     csv_data = []
+#     use_vanilla = vanilla_model
+
+#     motif_weights = None
+#     if not use_vanilla and hasattr(model, 'motif_params'):
+#         motif_weights = model.motif_params.detach().cpu()
+        
+#     with torch.no_grad():
+#         for mask_data, original_data_list in masked_data:
+#             # ---------- Full batch once for original logits ----------
+#             full_batch: Batch = Batch.from_data_list(original_data_list).to(model_device)
+#             full_batch_vec = getattr(full_batch, "batch", None)
+#             full_nodes_to_motifs = getattr(full_batch, "nodes_to_motifs", None)
+            
+#             orig_logits, _ = model(
+#                 full_batch.x,
+#                 full_batch.edge_index,
+#                 full_batch_vec,
+#                 node_to_motifs=full_nodes_to_motifs
+#             )  # [num_graphs]
+#             orig_logits = orig_logits.view(-1).detach().cpu()
+#             orig_logsig = F.logsigmoid(orig_logits)
+
+#             # Per-graph metadata (CPU)
+#             smiles_list = [d.smiles for d in original_data_list]
+#             y_vec = torch.tensor([int(d.y.item()) for d in original_data_list], dtype=torch.long)
+#             num_graphs = len(original_data_list)
+
+#             # Iterate only the motifs we care about
+#             for motif_idx, graph_indices in mask_data.items():
+#                 print(f"Processing motif {motif_idx}")
+#                 # Normalize indices to a sorted unique list (in case input is set/dup)
+#                 if isinstance(graph_indices, (list, tuple, torch.Tensor)):
+#                     selected_indices = sorted(set(int(i) for i in graph_indices))
+#                 else:
+#                     # If mask_data[motif_idx] is some custom container, coerce it
+#                     selected_indices = sorted(set(int(i) for i in list(graph_indices)))
+
+#                 # If this motif applies to no graphs, skip the masked forward entirely
+#                 if len(selected_indices) == 0:
+#                     continue
+
+#                 # ---------- Build sub-batch only for the selected graphs ----------
+#                 sub_list = [original_data_list[i] for i in selected_indices]
+#                 sub_batch: Batch = Batch.from_data_list(sub_list).to(model_device)
+#                 sub_batch_vec = getattr(sub_batch, "batch", None)
+#                 sub_nodes_to_motifs = getattr(sub_batch, "nodes_to_motifs", None)
+
+#                 # ---------- One masked forward for this motif over the subset ----------
+#                 masked_logits_sub, _ = model(
+#                     sub_batch.x,
+#                     sub_batch.edge_index,
+#                     sub_batch_vec,
+#                     node_to_motifs=sub_nodes_to_motifs,
+#                     masked_motif=motif_idx
+#                 )
+#                 masked_logits_sub = masked_logits_sub.view(-1).detach().cpu()
+#                 masked_logsig_sub = F.logsigmoid(masked_logits_sub)
+
+#                 # Motif-level metadata
+#                 if motif_idx == -1:
+#                     motif_str = "UNK"
+#                     if hasattr(model, "unk_param"):
+#                         importance = float(model.unk_param.item())
+#                         sigmoid_imp = float(model.unk_param.sigmoid().item())
+#                     else:
+#                         importance = 99.0
+#                         if hasattr(model, "unk_importance"):
+#                             sigmoid_imp = float(model.unk_importance)
+#                         else:
+#                             sigmoid_imp = None
+#                 else:
+#                     motif_str = motif_list[motif_idx]
+#                     if motif_weights is not None:
+#                         importance = float(motif_weights[motif_idx].item())
+#                         sigmoid_imp = float(torch.sigmoid(torch.as_tensor(importance)).item())
+#                     else:
+#                         importance = None
+#                         sigmoid_imp = None
+
+#                 # ---------- Emit rows only for the selected graphs ----------
+#                 for k, gidx in enumerate(selected_indices):
+#                     row = [
+#                         int(motif_idx),
+#                         motif_str,
+#                         int(gidx),
+#                         smiles_list[gidx],
+#                         float(orig_logits[gidx].item()),
+#                         float(masked_logits_sub[k].item()),
+#                         float(orig_logsig[gidx].item()),
+#                         float(masked_logsig_sub[k].item()),
+#                     ]
+#                     if motif_weights is not None:
+#                         row.extend([importance, sigmoid_imp])
+#                     row.append(int(y_vec[gidx].item()))
+#                     csv_data.append(row)
+             
+    
+#     # ---- Build headers (unchanged) ----
 #     headers = [
-#         "motif_id",
-#         "motif",
-#         "graph_id",
-#         "graph_str",
-#         "original_logit",
-#         "new_logit",
-#         "original_log_prob",
-#         "new_log_prob"
+#         "motif_id", "motif", "graph_id", "graph_str",
+#         "original_logit", "new_logit",
+#         "original_log_prob", "new_log_prob"
 #     ]
-#     if not use_vanilla:
-#         headers.extend([
-#             "importance",
-#             "sigmoid_importance",
-#         ])
+#     has_imp = motif_weights is not None
+#     if has_imp:
+#         headers.extend(["importance", "sigmoid_importance"])
 #     headers.append("class_label")
 
-#     # Write data to the CSV file
-#     with open(csv_file_path, mode='w', newline='') as file:
-#         writer = csv.writer(file)
+#     # ---- Vectorized metrics (no pandas) ----
+#     if has_imp and csv_data:
+#         # Convert once; keep as object, then slice/cast only what we need.
+#         arr = np.asarray(csv_data, dtype=object)
+
+#         # Column indices (matches headers above)
+#         COL_MOTIF_ID   = 0
+#         COL_ORIG_LOGIT = 4
+#         COL_NEW_LOGIT  = 5
+#         # importance = 8 (unused for correlation)
+#         COL_SIGIMP     = 9  # "sigmoid_importance"
+
+#         # Filter: motif_id != -1 (exclude UNK)
+#         mask = arr[:, COL_MOTIF_ID] != -1
+#         if np.any(mask):
+#             # Pull needed columns and cast once
+#             orig = arr[mask, COL_ORIG_LOGIT].astype(np.float64, copy=False)
+#             new  = arr[mask, COL_NEW_LOGIT].astype(np.float64, copy=False)
+#             sigi = arr[mask, COL_SIGIMP].astype(np.float64, copy=False)
+
+#             # Drop NaNs / inf in a single pass
+#             finite_mask = np.isfinite(orig) & np.isfinite(new) & np.isfinite(sigi)
+#             if np.any(finite_mask):
+#                 orig = orig[finite_mask]
+#                 new  = new[finite_mask]
+#                 sigi = sigi[finite_mask]
+
+#                 # Compute impact = |sigmoid(orig) - sigmoid(new)| (vectorized)
+#                 impact = np.abs(_sigmoid_np(orig) - _sigmoid_np(new))
+
+#                 # Guard against constant arrays (variance == 0) without counting tiny fp noise
+#                 if impact.size > 1 and sigi.size > 1 and np.var(impact) > 0.0 and np.var(sigi) > 0.0:
+#                     # Pearson without scipy: fast and allocates 2 small scalars
+#                     # corr = cov(x,y)/(std(x)*std(y))
+#                     x = sigi
+#                     y = impact
+#                     x_mean = x.mean()
+#                     y_mean = y.mean()
+#                     xm = x - x_mean
+#                     ym = y - y_mean
+#                     denom = (np.sqrt((xm * xm).sum()) * np.sqrt((ym * ym).sum()))
+#                     pearson_corr = float((xm * ym).sum() / denom) if denom > 0 else 0.0
+
+#                     zero_ratio = float((sigi < 0.1).mean())
+#                     penalty = float(1.0 - zero_ratio)
+#                     weighted_pearson = float(pearson_corr * penalty)
+#                 else:
+#                     pearson_corr = 0.0
+#                     weighted_pearson = 0.0
+#                     penalty = 0.0
+
+#                 # Log only once, with plain Python floats
+#                 wandb.log({
+#                     "pearson_motif_logit_impact": pearson_corr,
+#                     "weighted_pearson_motif_logit_impact": weighted_pearson,
+#                     "zero_ratio_penalty": penalty,
+#                     "n_motifs_used": int(impact.size),
+#                 })
+#             else:
+#                 wandb.log({
+#                     "pearson_motif_logit_impact": 0.0,
+#                     "weighted_pearson_motif_logit_impact": 0.0,
+#                     "zero_ratio_penalty": 0.0,
+#                     "n_motifs_used": 0,
+#                 })
+#         else:
+#             wandb.log({
+#                 "pearson_motif_logit_impact": 0.0,
+#                 "weighted_pearson_motif_logit_impact": 0.0,
+#                 "zero_ratio_penalty": 0.0,
+#                 "n_motifs_used": 0,
+#             })
+
+#     # ---- Write CSV (fast, streaming; avoids DataFrame build) ----
+#     with open(csv_file_path, mode="w", newline="") as f:
+#         writer = csv.writer(f)
 #         writer.writerow(headers)
 #         writer.writerows(csv_data)
+        
+        
+
+        
 
 def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, vanilla_model=False, batch_size=32):
     """
     Optimized version of save_csv_motif_importance to reduce memory usage.
     Computes the logit differences per motif across a dataset and saves to CSV.
     """
+    model.eval()
     model_device = next(model.parameters()).device
     csv_data = []
     use_vanilla = vanilla_model
@@ -540,7 +813,8 @@ def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, van
                 # Forward passes
                 with torch.no_grad():
                     original_pred, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
-                    new_pred, _ = model(perturbed_data, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
+                    # new_pred, _ = model(perturbed_data, data.edge_index, None, node_to_motifs=data.nodes_to_motifs)
+                    new_pred, _ = model(data.x, data.edge_index, None, node_to_motifs=data.nodes_to_motifs, masked_motif = motif_idx)
 
                 if motif_idx == -1:
                     motif_str = "UNK"
@@ -575,6 +849,36 @@ def save_csv_motif_importance(model, motif_list, masked_data, csv_file_path, van
     if motif_weights is not None:
         headers.extend(["importance", "sigmoid_importance"])
     headers.append("class_label")
+    
+    if motif_weights is not None and csv_data:
+        # Convert to DataFrame
+        df = pd.DataFrame(csv_data, columns=headers)
+
+        # Filter out UNK motifs (motif_idx == -1)
+        df = df[df["motif_id"] != -1]
+
+        # Compute impact: change in sigmoid(logit)
+        df["impact"] = np.abs(_sigmoid_np(df["original_logit"].astype(float)) - _sigmoid_np(df["new_logit"].astype(float)))
+
+        # Filter again in case of NaNs
+        df = df.dropna(subset=["sigmoid_importance", "impact"])
+
+        if df["sigmoid_importance"].nunique() > 1 and df["impact"].nunique() > 1:
+            pearson_corr, _ = pearsonr(df["sigmoid_importance"], df["impact"])
+            zero_ratio = np.mean(df["sigmoid_importance"] < 0.1)
+            penalty = 1 - zero_ratio
+            weighted_pearson = pearson_corr * penalty
+        else:
+            pearson_corr = 0.0
+            weighted_pearson = 0.0
+            penalty = 0.0
+
+        wandb.log({
+            "pearson_motif_logit_impact": pearson_corr,
+            "weighted_pearson_motif_logit_impact": weighted_pearson,
+            "zero_ratio_penalty": penalty,
+            "n_motifs_used": len(df)
+        })
 
     with open(csv_file_path, mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -586,7 +890,7 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
     # Get the device from the model
     model_device = next(model.parameters()).device
     csv_data = []  # Collect data for the CSV file
-    use_vanilla = vanilla_model is not None
+    use_vanilla = vanilla_model
     
     motif_weights = None
     if not use_vanilla and hasattr(model, 'motif_params'):
@@ -620,27 +924,27 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
                             sigmoid_imp = 1.0
                         else:
                             motif_str = motif_list[motif_idx]
-                            importance = motif_weights[motif_idx, class_idx].item()
-                            sigmoid_imp = torch.sigmoid(motif_weights[motif_idx, class_idx]).item()
+                            importance = motif_weights[motif_idx, class_idx].item() if motif_weights is not None else None
+                            sigmoid_imp = torch.sigmoid(motif_weights[motif_idx, class_idx]).item() if motif_weights is not None else None
 
                         
                         
                         
                         row = [
                             motif_idx,
-                            motif_id,
+                            motif_str,
                             graph_idx,
                             data.smiles,
                             class_idx,
-                            original_prediction[:, class_idx].item(),
-                            new_prediction[:, class_idx].item(),
-                            F.log_softmax(original_prediction[:, class_idx], dim=-1).item(),
-                            F.log_softmax(new_prediction[:, class_idx], dim=-1).item(),
+                            original_pred[:, class_idx].item(),
+                            new_pred[:, class_idx].item(),
+                            F.log_softmax(original_pred[:, class_idx], dim=-1).item(),
+                            F.log_softmax(new_pred[:, class_idx], dim=-1).item(),
                         ]
                         if motif_weights is not None:
                             row.extend([
-                                importance_class,
-                                sigmoid_importance_class,
+                                importance,
+                                sigmoid_imp,
                             ])
                         row.append(float(data.y[:, class_idx].item()))
                         csv_data.append(row)
@@ -658,7 +962,7 @@ def save_csv_motif_importance_multiclass(model, motif_list, masked_data, csv_fil
         "original_log_prob",
         "new_log_prob"
     ]
-    if use_vanilla:
+    if motif_weights is not None:
         headers.extend([
         "importance",
         "sigmoid_importance",

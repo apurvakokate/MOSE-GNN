@@ -8,6 +8,340 @@ import pdb
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import numpy as np
+# pip install rdkit-pypi
+from rdkit import Chem
+from rdkit.Chem import rdchem
+
+# ----------------------------
+# (A) Motif finders
+# ----------------------------
+
+def find_carbonyl_motifs(mol):
+    """Return list of carbonyl motifs as lists of atom indices [carbon_idx, oxygen_idx]."""
+    motifs = []
+    for b in mol.GetBonds():
+        if b.GetBondType() == rdchem.BondType.DOUBLE:
+            a, c = b.GetBeginAtom(), b.GetEndAtom()
+            if {a.GetAtomicNum(), c.GetAtomicNum()} == {6, 8}:
+                c_idx, o_idx = (a.GetIdx(), c.GetIdx()) if a.GetAtomicNum() == 6 else (c.GetIdx(), a.GetIdx())
+                motifs.append([c_idx, o_idx])
+    return motifs
+
+
+def _eligible_carbon(a, *, exclude_rings=True, aliphatic_only=True):
+    # Eligibility for being part of an alkyl chain graph (adj build).
+    if a.GetAtomicNum() != 6: return False
+    if aliphatic_only and a.GetIsAromatic(): return False
+    if exclude_rings and a.IsInRing(): return False
+    return True  # sp3 enforced only for INTERIORS
+
+
+def _carbon_single_neighbors(mol, idx):
+    out = []
+    a = mol.GetAtomWithIdx(idx)
+    for nb in a.GetNeighbors():
+        b = mol.GetBondBetweenAtoms(idx, nb.GetIdx())
+        if nb.GetAtomicNum() == 6 and b.GetBondType() == rdchem.BondType.SINGLE:
+            out.append(nb.GetIdx())
+    return out
+
+
+def find_unbranched_alkane_chains(
+    mol,
+    min_len=3,
+    exclude_rings=True,
+    aliphatic_only=True,
+    allow_sp2_endpoints=True,
+):
+    """
+    Linear, unbranched C–C SINGLE-bond chain of length >= min_len.
+    Interiors: carbon-only, sp3, non-aromatic, non-ring, heavy-degree==2, neighbors are exactly two chain carbons.
+    Endpoints: carbon; may be sp2 if allow_sp2_endpoints=True (helps avoid false negatives).
+    Returns list of chains as ordered lists of atom indices.
+    """
+    n = mol.GetNumAtoms()
+    eligible = [_eligible_carbon(mol.GetAtomWithIdx(i), exclude_rings=exclude_rings, aliphatic_only=aliphatic_only)
+                for i in range(n)]
+
+    adj = [[] for _ in range(n)]
+    for b in mol.GetBonds():
+        if b.GetBondType() != rdchem.BondType.SINGLE:
+            continue
+        u, v = b.GetBeginAtomIdx(), b.GetEndAtomIdx()
+        if eligible[u] and eligible[v]:
+            adj[u].append(v); adj[v].append(u)
+
+    def valid_segment(seg):
+        L = len(seg)
+        if L < min_len: return False
+        for k, idx in enumerate(seg):
+            a = mol.GetAtomWithIdx(idx)
+            c_single = _carbon_single_neighbors(mol, idx)
+            deg_heavy = a.GetDegree()
+            if 0 < k < L-1:
+                if a.GetHybridization() != rdchem.HybridizationType.SP3: return False
+                if deg_heavy != 2: return False
+                if len(c_single) != 2 or set(c_single) != {seg[k-1], seg[k+1]}: return False
+            else:
+                # endpoint: exactly one chain neighbor in seg
+                if len([j for j in adj[idx] if j in seg]) != 1: return False
+                if not allow_sp2_endpoints and a.GetHybridization() != rdchem.HybridizationType.SP3:
+                    return False
+        return True
+
+    visited = set()
+    chains = []
+
+    # grow from ends (eligible degree != 2)
+    for i in range(n):
+        if not eligible[i]: continue
+        if len(adj[i]) != 2:
+            for nb in adj[i]:
+                e = tuple(sorted((i, nb)))
+                if e in visited: continue
+                seg = [i, nb]; visited.add(e)
+                prev, cur = i, nb
+                while len(adj[cur]) == 2:
+                    nxt = adj[cur][0] if adj[cur][1] == prev else adj[cur][1]
+                    e2 = tuple(sorted((cur, nxt)))
+                    if e2 in visited: break
+                    seg.append(nxt); visited.add(e2)
+                    prev, cur = cur, nxt
+                if valid_segment(seg):
+                    chains.append(seg)
+
+    # components where every eligible node has degree==2 (non-ring corridor)
+    seen = set()
+    for i in range(n):
+        if not eligible[i] or i in seen: continue
+        stack = [i]; comp = []
+        while stack:
+            u = stack.pop()
+            if u in seen: continue
+            seen.add(u); comp.append(u)
+            for v in adj[u]:
+                if v not in seen:
+                    stack.append(v)
+        if comp and all(len(adj[u]) == 2 for u in comp):
+            # build a path order
+            path = [comp[0]]
+            while len(adj[path[-1]]) == 2 and (len(path) == 1 or adj[path[-1]][0] != path[-2]):
+                nxt = adj[path[-1]][0] if len(path) == 1 or adj[path[-1]][0] != path[-2] else adj[path[-1]][1]
+                if nxt in path: break
+                path.append(nxt)
+            path = path[::-1]
+            while len(adj[path[-1]]) == 2 and (len(path) == 1 or adj[path[-1]][0] != path[-2]):
+                nxt = adj[path[-1]][0] if len(path) == 1 or adj[path[-1]][0] != path[-2] else adj[path[-1]][1]
+                if nxt in path: break
+                path.append(nxt)
+            if valid_segment(path):
+                chains.append(path)
+
+    return chains
+
+
+# ----------------------------
+# (B) Helper utilities
+# ----------------------------
+
+def _bond_idx(mol, a, b):
+    bnd = mol.GetBondBetweenAtoms(a, b)
+    return None if bnd is None else bnd.GetIdx()
+
+def _protect_intra_motif_bonds(mol, atom_groups):
+    """Set of bond indices that must NOT be cut (intra-motif)."""
+    protect = set()
+    owner = [-1] * mol.GetNumAtoms()
+    for gid, atoms in enumerate(atom_groups):
+        for i in atoms:
+            owner[i] = gid
+    for a in range(mol.GetNumAtoms()):
+        for nb in mol.GetAtomWithIdx(a).GetNeighbors():
+            b = nb.GetIdx()
+            if a < b and owner[a] != -1 and owner[a] == owner[b]:
+                bi = _bond_idx(mol, a, b)
+                if bi is not None: protect.add(bi)
+    return protect
+
+def _boundary_bonds(mol, atoms):
+    """Bond indices from motif atoms to outside (to be cut to isolate motif)."""
+    atoms_set = set(atoms)
+    cuts = set()
+    for a in atoms:
+        for nb in mol.GetAtomWithIdx(a).GetNeighbors():
+            b = nb.GetIdx()
+            if b not in atoms_set:
+                bi = _bond_idx(mol, a, b)
+                if bi is not None:
+                    cuts.add(bi)
+    return cuts
+from rdkit import Chem
+from rdkit.Chem import rdchem
+
+def safe_sanitize_fragment(frag: Chem.Mol) -> Chem.Mol:
+    """
+    Sanitize a fragment defensively:
+      1) try full sanitize;
+      2) on Kekulize/Aromaticity issues, clear aromatic flags & re-sanitize without KEKULIZE,
+         then set aromaticity explicitly.
+    """
+    frag = Chem.Mol(frag)  # copy
+    frag.UpdatePropertyCache(strict=False)
+    try:
+        Chem.SanitizeMol(frag)
+        return frag
+    except Exception:
+        # Clear existing aromatic flags (puts explicit bonds), then re-run a reduced sanitize
+        try:
+            Chem.Kekulize(frag, clearAromaticFlags=True)
+        except Exception:
+            pass  # if this fails, we'll still try reduced sanitize below
+
+        # Run sanitize but SKIP KEKULIZE step to avoid the same failure
+        ops = (Chem.SanitizeFlags.SANITIZE_ALL ^ Chem.SanitizeFlags.SANITIZE_KEKULIZE)
+        Chem.SanitizeMol(frag, sanitizeOps=ops)
+
+        # Recompute aromaticity (without enforcing kekulized form)
+        Chem.SetAromaticity(frag)
+        return frag
+
+def safe_split_fragments(mol_after: Chem.Mol) -> list[Chem.Mol]:
+    """
+    Split molecule into fragments WITHOUT sanitizing at split time,
+    then sanitize each fragment safely.
+    """
+    raw_frags = Chem.GetMolFrags(mol_after, asMols=True, sanitizeFrags=False)
+    out = []
+    for f in raw_frags:
+        out.append(safe_sanitize_fragment(f))
+    return out
+
+# ----------------------------
+# (C) Main pipeline: Preserve motifs, then BRICS on the rest
+# ----------------------------
+
+def fragment_preserve_motifs_then_BRICS(
+    mol_or_smiles,
+    motifs=("alkane", "carbonyl"),
+    alkane_min_len=3,
+    prefer_order=("alkane", "carbonyl"),
+    allow_sp2_endpoints=True,
+):
+    """
+    1) Identify motifs (alkane chains, carbonyls).
+    2) Cut ONLY motif boundary bonds so motifs are standalone fragments.
+    3) On the remaining (non-motif) fragments, run BRICS fragmentation (rBRICS if available; else RDKit BRICS).
+    Returns list of fragment RDKit Mol objects.
+    """
+    mol = Chem.MolFromSmiles(mol_or_smiles) if isinstance(mol_or_smiles, str) else Chem.Mol(mol_or_smiles)
+
+    # --- 1) find motifs ---
+    pending = []
+    if "carbonyl" in motifs:
+        for atoms in find_carbonyl_motifs(mol):
+            pending.append(("carbonyl", atoms))
+    if "alkane" in motifs:
+        for chain in find_unbranched_alkane_chains(
+            mol, min_len=alkane_min_len, allow_sp2_endpoints=allow_sp2_endpoints
+        ):
+            pending.append(("alkane", chain))
+
+    # Resolve overlaps by priority
+    prio = {name: i for i, name in enumerate(prefer_order)}
+    owned = [None] * mol.GetNumAtoms()
+    groups = []  # (name, atoms)
+    for name, atoms in sorted(pending, key=lambda x: prio.get(x[0], 999)):
+        kept = [a for a in atoms if owned[a] is None]
+        if kept:
+            for a in kept: owned[a] = name
+            groups.append((name, kept))
+
+    motif_atoms = [atoms for _, atoms in groups]
+
+    # --- 2) compute protected & boundary bonds; cut boundaries to isolate motifs ---
+    protected = _protect_intra_motif_bonds(mol, motif_atoms)
+    cut = set()
+    for _, atoms in groups:
+        cut |= _boundary_bonds(mol, atoms)
+    cut -= protected  # safety
+
+    # First cut: isolate motifs
+    if cut:
+        mol_after = Chem.FragmentOnBonds(mol, sorted(cut), addDummies=True)
+    else:
+        mol_after = Chem.Mol(mol)
+
+    # Split into fragments
+    frags = safe_split_fragments(mol_after)
+
+    # Helper to re-check motifs in a fragment (labeling)
+    def _frag_has(m, kind):
+        if kind == "carbonyl":
+            return len(find_carbonyl_motifs(m)) > 0
+        if kind == "alkane":
+            return len(find_unbranched_alkane_chains(m, min_len=alkane_min_len,
+                                                    allow_sp2_endpoints=allow_sp2_endpoints)) > 0
+        return False
+
+    # --- 3) BRICS on non-motif fragments only ---
+    final_frags = []
+    # Try rBRICS first (your custom module)
+    rbrics_ok = False
+    try:
+        # expects functions with these names in your file
+        # from rBRICS_public import FindreBRICSBonds, BreakrBRICSBonds, reBRICS
+        rbrics_ok = True
+    except Exception:
+        rbrics_ok = False
+
+    for f in frags:
+        has_alk = _frag_has(f, "alkane") if "alkane" in motifs else False
+        has_carb = _frag_has(f, "carbonyl") if "carbonyl" in motifs else False
+        if has_alk or has_carb:
+            # preserve motif fragments as is
+            final_frags.append(f)
+            continue
+
+        if rbrics_ok:
+            # Use your rBRICS flow on this fragment
+            try:
+                # Find & break BRICS bonds (respecting rBRICS’ logic)
+                pbonds = list(FindreBRICSBonds(f))
+                broken = BreakrBRICSBonds(f, pbonds)
+                # rBRICS post-processing (if needed)
+                sub_frags = Chem.GetMolFrags(broken, asMols=True, sanitizeFrags=True)
+                # Optional: apply reBRICS if your pipeline expects a second pass
+                try:
+                    sub_frags = reBRICS(sub_frags)
+                except Exception:
+                    pass
+                final_frags.extend(sub_frags if isinstance(sub_frags, (list, tuple)) else [sub_frags])
+                continue
+            except Exception:
+                # Fall back to RDKit BRICS if rBRICS failed on this fragment
+                pass
+
+        # RDKit BRICS fallback
+        try:
+            from rdkit.Chem import BRICS
+            br_bonds = BRICS.FindBRICSBonds(f)  # [ ((a,b),(l1,l2)), ... ]
+            if br_bonds:
+                # Convert to bond indices for FragmentOnBonds OR use BreakBRICSBonds
+                # Using BreakBRICSBonds keeps BRICS attachment labels.
+                f2 = BRICS.BreakBRICSBonds(f, [(a, b) for (a, b), _ in br_bonds])
+                sub_frags = Chem.GetMolFrags(f2, asMols=True, sanitizeFrags=True)
+                final_frags.extend(sub_frags)
+            else:
+                final_frags.append(f)
+        except Exception:
+            # If BRICS unavailable, keep the fragment as-is
+            final_frags.append(f)
+
+    return final_frags
+
+
+
+
 def sanitize_molecule(mol):
     """
     Sanitize the molecule after breaking bonds to fix aromaticity and valence issues.
@@ -90,7 +424,10 @@ def get_lookup_tables(training_data, validation_data, test_data, algorithm):
     process_dataset(training_data + validation_data, lookup,algorithm=algorithm)
     process_dataset(test_data, lookup, is_test=True, algorithm=algorithm)
 
-    # Count motifs and normalize by motif length
+    # Save motifs to retrieve original list after filtering
+    lookup.save_motifs()
+
+    
     data_lookup = dict(lookup.data)
     test_data_lookup = dict(lookup.test_data)
     
@@ -539,6 +876,15 @@ def process_dataset(dataset, lookup, is_test=False, algorithm='BRICS'):
             for fragment in all_fragments:
                 #Todo add min length
                 add_fragment(fragment, molecule_smiles, data, lookup, is_test)
+    elif algorithm == 'PRESERVE_ALKANE_CARBONYL':
+        for i, data in enumerate(dataset):
+            molecule_smiles = data["smiles"]
+            molecule = process_molecule(molecule_smiles, True)
+            all_fragments = fragment_preserve_motifs_then_BRICS(molecule)
+            for fragment in all_fragments:
+                #Todo add min length
+                add_fragment(fragment, molecule_smiles, data, lookup, is_test)
+
     elif algorithm =='MGSSL':
         for i, data in enumerate(dataset):
             molecule_smiles = data["smiles"]
@@ -662,6 +1008,8 @@ class MotifDictionary:
         # --- new: keep a pristine backup of the full vocab ---
         self._backup_motifs_length = self.motifs_length.copy()
         self._backup_motifs_class  = self.motifs_class.copy()
+        self._test_backup_motifs_length = self.test_motifs_length.copy()
+        self._test_backup_motifs_class = self.test_motifs_class.copy()
     
     def remove_motifs(self, list_of_motifs_to_remove):
         '''
@@ -687,6 +1035,12 @@ class MotifDictionary:
         All unique motifs
         '''
         return list(self.motifs_length.keys())
+
+    def get_all_possible_motif_without_filter(self):
+        '''
+        Unfiltered Motifs
+        '''
+        return self._backup_motifs_length, self._backup_motifs_class, self._test_backup_motifs_length, self._test_backup_motifs_class
     
     def get_motif_lengths(self):
         return self.motifs_length
