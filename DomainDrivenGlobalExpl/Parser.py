@@ -26,11 +26,57 @@ def get_parser():
                         choices=['BinaryClass', 'MultiTask','MultiClass', 'Regression'],
                         help='Type of prediction task.')
     
+    parser.add_argument('--path', type=str, default='/nfs/stak/users/kokatea/hpc-share/ChemIntuit/MOSE-GNN/DICTIONARY',
+                       help='Path to DICTOIONARY Folder used during vocabulary creation')
+    
     parser.add_argument('--algorithm', type=str, default="None",
-                        choices=["None","RBRICS", "MGSSL"],
+                        choices=["None","RBRICS", "MGSSL","PRESERVE_ALKANE_CARBONYL"],
                         help='Type of prediction task.')
 
     parser.add_argument("--base_importance", type=float, default = 0.0, help="Start for every motif parameter")
+    parser.add_argument("--unk_importance", type=float, default = 1.0, help="Weightage given for rare unknown motifs")
+    parser.add_argument(
+        "--use_gumbel_softmax",
+        dest="use_gumbel_softmax",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="If False uses sigmoid activation",
+    )
+    
+    parser.add_argument(
+        "--use_annealing",
+        dest="use_annealing",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="If False uses sigmoid activation without annealing",
+    )
+    parser.add_argument('--gumbel_tau', type=float, default=1.0,
+                        help='Temperature parameter for annealing. Default is 1.0.')
+    
+    parser.add_argument(
+        "--learn_unknown",
+        dest="learn_unknown",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="If False uses fixed values for unknown motifs",
+    )
+    
+    parser.add_argument(
+        "--use_zero_weight",
+        dest="use_zero_weight",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="If True uses zero weight for masked nodes",
+    )
+
+    parser.add_argument(
+        "--use_stl",
+        dest="use_stl",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="If False uses activation without binarization",
+    )
+
 
     # Add arguments based on the config dictionary
     parser.add_argument('--num_mp_layers', type=int, default=2,
