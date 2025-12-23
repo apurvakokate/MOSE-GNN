@@ -152,7 +152,7 @@ class MAGE:
         #     label_0_score = torch.load(f"checkpoints/motif_selection/"+'BBBP'+"_label_0_scores.pt")
         #     label_1_score = torch.load(f"checkpoints/motif_selection/"+'BBBP'+"_label_1_scores.pt")
         # else:
-        label_0_score, label_1_score,  final_motif_0, final_motif_1 = motif_filter(self.whole_dataset, heter_path, self.smiles_set, self.model, 2, self.device)
+        label_0_score, label_1_score,  final_motif_0, final_motif_1 = motif_filter(self.whole_dataset, heter_path, self.smiles_set, self.model, 2, self.device, self.hidden_channels)
         # selected_motif = torch.load("checkpoints/motif_selection/"+'BBBP'+"_motif_"+str(self.label)+".pt")
 
         mask = torch.zeros((1, len(self.smiles_set)), dtype=torch.long).to(self.device)
@@ -163,8 +163,6 @@ class MAGE:
             if smiles in selected_motif:
                 mask[0][i] = 1
         self.motif_mask = mask.bool()
-        input("Motif Mask learning done for each class. Showing Class "+str(self.label))
-        input(self.motif_mask)
         
         return label_0_score, label_1_score
 
