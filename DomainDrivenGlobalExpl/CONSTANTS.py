@@ -32,7 +32,11 @@ CHOSEN_THRESHOLD = {'RBRICS':
                      'Fluoride_Carbonyl':0.5,
                      'esol':0.2,
                      'Lipophilicity':0.5,
-                     'tox21':0.2}
+                     'tox21':0.2},
+                    'PRESERVE_ALKANE_CARBONYL': 
+                    {
+                     'Alkane_Carbonyl':0.5
+                    }
                    }
 
 ALGORITHMS = ["RBRICS"]#["RBRICS","BRICS"]
