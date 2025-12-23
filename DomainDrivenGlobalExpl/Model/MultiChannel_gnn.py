@@ -19,7 +19,7 @@ class GNNModel(nn.Module):
     - Outputs are concatenated across classes to shape [num_graphs, num_classes].
     """
     def __init__(self,input_dim, output_dim, hidden_channels, num_layers, layer_type, use_explainer=False,
-                motif_params=None, lookup=None, test_lookup=None, task_type = 'MultiLabel'):
+                motif_params=None, lookup=None, test_lookup=None, unk_importance = 1.0, learn_unknown = False,task_type = 'MultiLabel'):
         super().__init__()
         num_mp_layers  = num_layers
         hidden         = hidden_channels
@@ -33,9 +33,9 @@ class GNNModel(nn.Module):
         self.lin2 = nn.ModuleDict()
 
         for i in range(self.num_classes):
-            self.convs[str(i)] = create_conv_layers(input_dim, hidden_channels, num_layers, layer_type)
-            self.lin1[str(i)] = Linear(hidden_channels, hidden_channels)
-            self.lin2[str(i)] = Linear(hidden_channels, 1)
+            self.convs[str(i)] = create_conv_layers(input_dim, hidden_channels*2, num_layers, layer_type)
+            self.lin1[str(i)] = Linear(hidden_channels*2, hidden_channels*2)
+            self.lin2[str(i)] = Linear(hidden_channels*2, 1)
         
         if not use_explainer:
             print("No Explainer parameters will be used. Assuming all node weights are 1")
@@ -45,22 +45,53 @@ class GNNModel(nn.Module):
             self.motif_params = nn.Parameter(motif_params, requires_grad=True)
             self.lookup = lookup
             self.test_lookup = test_lookup
+            
+            self.learnable_unk = learn_unknown
+            if learn_unknown:
+                
+                # one shared learnable scalar for all unknown motifs
+                self.unk_param = torch.nn.Parameter(torch.tensor(unk_importance))
+            self.lookup = lookup
+            self.test_lookup = test_lookup
+            
+            self.unk_importance = unk_importance
+            
 
-    def motif_to_node_params(self, node_to_motifs, num_nodes, device, ignore_unknowns = False):
+#     def motif_to_node_params(self, node_to_motifs, num_nodes, device, ignore_unknowns = False):
         
+#         if ignore_unknowns:
+#             param_tensor = torch.full((node_to_motifs.shape[0], self.num_classes), 0.0, device=device)
+#         else:
+#             param_tensor = torch.full((node_to_motifs.shape[0], self.num_classes), 1.0, device=device)
+            
+#         for index_of_node_in_batch, motif_index in enumerate(node_to_motifs):
+#             if motif_index != -1:
+#                 param_tensor[index_of_node_in_batch] = self.motif_params[motif_index].sigmoid()
+           
+#         return param_tensor
+
+    
+    def motif_to_node_params(self, node_to_motifs, num_nodes, device, ignore_unknowns = False, masked_motif=None):
         if ignore_unknowns:
             param_tensor = torch.full((node_to_motifs.shape[0], self.num_classes), 0.0, device=device)
         else:
-            param_tensor = torch.full((node_to_motifs.shape[0], self.num_classes), 1.0, device=device)
-            
+            if self.learnable_unk:
+                unk_val = self.unk_param.sigmoid()  # learnable scalar
+                param_tensor = unk_val.expand(node_to_motifs.shape[0], self.num_classes).clone()
+            else:
+                unk_val = self.unk_importance  # fixed scalar
+                param_tensor = torch.full((node_to_motifs.shape[0], self.num_classes), unk_val, device=device)
+
         for index_of_node_in_batch, motif_index in enumerate(node_to_motifs):
-            if motif_index != -1:
+            if motif_index == masked_motif:
+                param_tensor[index_of_node_in_batch] = 0.0
+            elif motif_index != -1:
                 param_tensor[index_of_node_in_batch] = self.motif_params[motif_index].sigmoid()
-           
+                
         return param_tensor
 
 
-    def forward(self, x, edge_index, batch=None, node_to_motifs = None,edge_weight = None, ignore_unknowns=False, return_logit=False):
+    def forward(self, x, edge_index, batch=None, node_to_motifs = None,edge_weight = None, ignore_unknowns=False, return_logit=False, masked_motif=None):
         
         if batch is None:
             batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
@@ -76,22 +107,37 @@ class GNNModel(nn.Module):
             all_output = ()
             self.all_readout_output = []
             
+            if masked_motif is not None and node_to_motifs is not None:
+                
+                node_weights = torch.ones(x.size(0), device=x.device, dtype=x.dtype)
+                if not isinstance(node_to_motifs, torch.Tensor):
+                    node_to_motifs = torch.as_tensor(node_to_motifs, device=x.device)
+                mask = (node_to_motifs.to(x.device) == masked_motif)
+                node_weights = node_weights.masked_fill(mask, 0.0).unsqueeze(-1)  # [N,1]
+
+            # Node Embeddings
+            if node_weights is not None:
+                x = x * node_weights
+            
             for channel in range(self.num_classes):
 
                 #Node Embeddings
                 x_channel = self.embedding(x, edge_index, channel)
                 #Graph Embedding
+                if node_weights is not None:
+                    x_channel = x_channel * node_weights
                 x_channel = global_add_pool(x_channel, batch)
                 self.all_readout_output.append(x_channel)
+                #Prediction
                 x_channel = self.classification(x_channel, channel)
                 
                 all_output = all_output + (x_channel,)
                 
             self.readout_output = torch.stack(self.all_readout_output, dim=0)
-            pdb.set_trace()
+            
 
         else:
-            node_weights = self.motif_to_node_params(node_to_motifs, x.shape[0], x.device, ignore_unknowns)
+            node_weights = self.motif_to_node_params(node_to_motifs, x.shape[0], x.device, ignore_unknowns, masked_motif = masked_motif)
             
             node_weights =  node_weights.to(edge_index.device)
             
@@ -103,7 +149,6 @@ class GNNModel(nn.Module):
             
                 # Channel embedding
                 x_channel = self.get_graph_representation(x, edge_index, node_weights, channel, batch)
-
                 
                 all_output = all_output + (x_channel,)
                 
@@ -126,17 +171,14 @@ class GNNModel(nn.Module):
         return self.classification(x_cls, class_id)
     
     def embedding(self, x, edge_index, class_id):
-        # x = x.to(edge_index.device)
         for conv in self.convs[str(class_id)]:
             conv = conv.to(edge_index.device)
-            # pdb.set_trace()
             x = conv(x, edge_index)
             x = torch.nn.functional.normalize(x, p=2, dim=1)
             x = F.relu(x)
         return x
     
     def classification(self, x, class_id):
-        # self.lin1[str(class_id] = self.lin1[class_id].to(x.device)
         x = F.relu(self.lin1[str(class_id)](x))
         x = F.dropout(x, p=0.5, training=self.training)
         x = self.lin2[str(class_id)](x)
