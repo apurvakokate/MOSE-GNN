@@ -1,8 +1,5 @@
-from tqdm import tqdm
-import torch.nn.utils as nn_utils
-from IPython.display import display, clear_output
-import time
-
+import CONSTANTS
+import pdb
 import torch
 from torch_geometric.loader import DataLoader
 from torch_geometric.datasets import MoleculeNet
@@ -13,18 +10,27 @@ import numpy as np
 import sys
 from collections import defaultdict
 import pandas as pd
-from DataLoader import MolDataset, get_setup_files, get_setup_files_with_folds
+from DataLoader import MolDataset, get_setup_files_with_folds
 from Parser import get_parser
 import json
 import os
 import csv
 from MultiChannel_gnn import GNNModel
 # Training the model and plotting the losses
-from Utils_Train import train_and_evaluate_model, remove_bad_mols, evaluate_model, get_masked_graphs_from_list, mae, rmse, plot_and_save_distribution, compute_pos_weights
-from Utils_plot import plot_losses
-from Utils_params import save_csv_motif_importance_multiclass
+from Utils.Utils_Train import train_and_evaluate_model, remove_bad_mols, evaluate_model, mae, rmse, compute_pos_weights
+from Utils.Utils_plot import plot_losses
+from Utils.Utils_params import save_csv_motif_importance_optimized # TODO USE save_csv_motif_importance_optimized
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+import os, wandb
+from pathlib import Path
 
+# Choose where you want runs & (optionally) the artifact cache to live
+WANDB_DIR = "/nfs/stak/users/kokatea/hpc-share/ChemIntuit/MOSE-GNN/wandb_runs"
 
+# Make sure they exist and set env vars BEFORE importing/initializing wandb
+Path(WANDB_DIR).mkdir(parents=True, exist_ok=True)
+
+os.environ["WANDB_DIR"] = WANDB_DIR
 
 EXPERIMENT_RESULTS = {}
 
@@ -44,11 +50,8 @@ dataset_name = args.dataset_name
 # We dont need these during Vanilla computation but use it to create dataloader
 lookup, motif_list, motif_counts, motif_lengths, motif_class_count, graph_to_motifs, test_data_lookup, test_graph_to_motifs, train_mask_data, val_mask_data, test_mask_data = get_setup_files_with_folds(dataset_name, date_tag, args.fold, args.algorithm)
 
-# dataset_column_dict = {'tox21': ['NR-AR', 'NR-AR-LBD','NR-AhR','NR-Aromatase','NR-ER','NR-ER-LBD', 
-#                                  'NR-PPAR-gamma', 'SR-ARE','SR-ATAD5', 'SR-HSE','SR-MMP','SR-p53']}
-
 if CONSTANTS.DATASET_TYPE[args.dataset_name] == 'MultiTask':
-    num_classes = len(label_col)
+    num_classes = len(CONSTANTS.DATASET_COLUMN[args.dataset_name])
 else:
     raise Exception("Use Single Channel training code")
 
@@ -120,7 +123,11 @@ elif config["model_type"] == "MultiChannel":
                       motif_params = params_motif_x_class,
                       lookup = lookup,
                       task_type = args.task_type,
-                      test_lookup = test_data_lookup)
+                      test_lookup = test_data_lookup,
+                      #Additinal arguments for learning unknown motif importance
+                      unk_importance = args.unk_importance,
+
+                      learn_unknown = args.learn_unknown)
     
 else:
     raise Exception("Model not Supported")
@@ -145,13 +152,11 @@ else:
 
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 
-# crit = torch.nn.CrossEntropyLoss()
-if args.task_type =='MutiClass':
-    crit = torch.nn.CrossEntropyLoss()
+if args.task_type =='MultiTask':
+    #MultiTask
+    crit = torch.nn.BCEWithLogitsLoss(reduction='none') # TODO check reduction
     class_weights_for_positive = compute_pos_weights(training_data)
-else:
-    #MutiTask
-    crit = torch.nn.BCEWithLogitsLoss(reduction='none')
+else:   
     raise Exception("Task not Supported")
 
 # vanilla_model.use_ones = False
@@ -159,6 +164,17 @@ else:
 model_path = f"/explainer/{dataset_name}_best_model_acc.pth"
 
 final_results_path = f"{output_dir}/{dataset_name}_classification_result.json"
+
+run = wandb.init(
+        project="mose-gnn",
+        name=f"{dataset_name}-{config['layer_type']}-seed0-fold{args.fold}",
+        group=dataset_name,                 # groups runs by dataset
+        job_type="train",
+        tags=[config["layer_type"], "MOSE", args.task_type],          # whatever helps you filter
+        config=config,
+    )
+
+
 if os.path.isfile(final_results_path):
     #Training is complete go to evaluation
     model_state = torch.load(output_dir+model_path)
@@ -181,10 +197,10 @@ else:
                                                                               scheduler = scheduler,
                                                                               clip_grad_norm=True)  
 
-    image_path = output_dir+f"/explainer/{dataset_name}_losses.png"
-    plot_losses(train_losses, val_losses, dataset_name, image_path)
-    image_path = output_dir+f"/explainer/{dataset_name}_roc-auc.png"
-    plot_losses(train_accs, val_accs, dataset_name, image_path, headers = ["Training Accuracy", "Validation Accuracy"])
+    # image_path = output_dir+f"/explainer/{dataset_name}_losses.png"
+    # plot_losses(train_losses, val_losses, dataset_name, image_path)
+    # image_path = output_dir+f"/explainer/{dataset_name}_roc-auc.png"
+    # plot_losses(train_accs, val_accs, dataset_name, image_path, headers = ["Training Accuracy", "Validation Accuracy"])
     
     
 model_state = torch.load(output_dir+model_path)
@@ -198,29 +214,32 @@ pd.DataFrame([EXPERIMENT_RESULTS]).to_json(
     f"{output_dir}/{dataset_name}_classification_result.json", orient='records', lines=True
 )
 
-# Explanation impact visualization
+# TODO USE save_csv_motif_importance_optimized for Explanation impact visualization
 if hasattr(model, 'motif_params'):
-    test_file = f"{output_dir}/{dataset_name}_explanation_result_with_test.csv"
-    val_file = f"{output_dir}/{dataset_name}_explanation_result_with_validation.csv"
-    train_file = f"{output_dir}/{dataset_name}_explanation_result_with_train.csv"
-
+    
+    test_file = f"{output_dir}/{dataset_name}_explanation_result_with_test_zero_weight.csv"
+    val_file = f"{output_dir}/{dataset_name}_explanation_result_with_validation_zero_weight.csv"
+    train_file = f"{output_dir}/{dataset_name}_explanation_result_with_train_zero_weight.csv"
+    
     if not os.path.exists(test_file):
-        save_csv_motif_importance_multiclass(model, motif_list, [(test_mask_data, test_data)], test_file, num_classes)
+        save_csv_motif_importance_optimized(model, motif_list, [(test_mask_data, test_data)], test_file, num_classes = training_data.num_classes)
     if not os.path.exists(val_file):
-        save_csv_motif_importance_multiclass(model, motif_list, [(val_mask_data, validation_data)], val_file, num_classes)
+        save_csv_motif_importance_optimized(model, motif_list, [(val_mask_data, validation_data)], val_file, num_classes = training_data.num_classes)
     if not os.path.exists(train_file):
-        save_csv_motif_importance_multiclass(model, motif_list, [(train_mask_data, training_data)], train_file, num_classes)
+        save_csv_motif_importance_optimized(model, motif_list, [(train_mask_data, training_data)], train_file, num_classes = training_data.num_classes)
         
 else:
-    test_file = f"{output_dir}/{dataset_name}_{args.algorithm}_test.csv"
-    val_file = f"{output_dir}/{dataset_name}_{args.algorithm}_validation.csv"
-    train_file = f"{output_dir}/{dataset_name}_{args.algorithm}_train.csv"
-
+    test_file = f"{output_dir}/{dataset_name}_{args.algorithm}_test_zero_weight.csv"
+    val_file = f"{output_dir}/{dataset_name}_{args.algorithm}_validation_zero_weight.csv"
+    train_file = f"{output_dir}/{dataset_name}_{args.algorithm}_train_zero_weight.csv"
+    
     if not os.path.exists(test_file):
-        save_csv_motif_importance_multiclass(model, motif_list, [(test_mask_data, test_data)], test_file, num_classes, vanilla_model= True)
+        save_csv_motif_importance_optimized(model, motif_list, [(test_mask_data, test_data)], test_file, num_classes = training_data.num_classes, vanilla_model= True)
     if not os.path.exists(val_file):
-        save_csv_motif_importance_multiclass(model, motif_list, [(val_mask_data, validation_data)], val_file, num_classes, vanilla_model= True)
+        save_csv_motif_importance_optimized(model, motif_list, [(val_mask_data, validation_data)], val_file, num_classes = training_data.num_classes, vanilla_model= True)
     if not os.path.exists(train_file):
-        save_csv_motif_importance_multiclass(model, motif_list, [(train_mask_data, training_data)], train_file, num_classes, vanilla_model= True)
+        save_csv_motif_importance_optimized(model, motif_list, [(train_mask_data, training_data)], train_file, num_classes = training_data.num_classes, vanilla_model= True)
+
 
     
+run.finish()
